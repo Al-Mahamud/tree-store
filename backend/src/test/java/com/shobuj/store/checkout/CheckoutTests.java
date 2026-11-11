@@ -104,6 +104,7 @@ class CheckoutTests {
         assertThat(placed.status()).isEqualTo(201);
         String number = placed.body().get("number").asString();
         String token = placed.body().get("token").asString();
+        assertThat(number).startsWith("SB");
         assertThat(stock(snake)).isEqualTo(before - 1);
         assertThat(shopper.get("/api/v1/cart").body().get("items")).isEmpty();
 

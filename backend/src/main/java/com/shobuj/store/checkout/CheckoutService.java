@@ -128,7 +128,7 @@ public class CheckoutService {
         Quote quote = price(subtotal, coupon, customer.zone());
 
         long number = jdbc.sql("select nextval('order_number_seq')").query(Long.class).single();
-        String orderNumber = "TN" + number;
+        String orderNumber = "SB" + number;
         String token = token();
         String status = method == PaymentMethod.COD ? "PLACED" : "PENDING_PAYMENT";
         long orderId = jdbc.sql("""

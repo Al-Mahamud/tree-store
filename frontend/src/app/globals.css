@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* Design tokens: bone background, forest green ink, sage panels, a fresh lime highlight. */
+@theme {
+  --color-bone: #f4f2ec;
+  --color-mist: #e9ece3;
+  --color-sage: #cdd6c0;
+  --color-moss: #5e7f4f;
+  --color-forest: #1e3b2c;
+  --color-forest-deep: #142a1f;
+  --color-ink: #13201a;
+  --color-ink-soft: #34423a;
+  --color-muted: #5f6b63;
+  --color-line: #dcdfd3;
+  --color-lime: #d6ee7a;
+  --color-clay: #b8643c;
+  --color-sale: #b5482c;
+  --color-ok: #2f6b45;
+
+  --font-sans: var(--font-manrope), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument), var(--font-bengali), ui-serif, Georgia, serif;
+  --font-bangla: var(--font-bengali), var(--font-manrope), sans-serif;
+
+  --radius-card: 1.75rem;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-rise: rise 0.7s var(--ease-out-soft) both;
+  --animate-sway: sway 6s ease-in-out infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--color-bone);
+    color: var(--color-ink);
+  }
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-forest-deep);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 3px;
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1400px;
+  padding-inline: 1rem;
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 80rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility kicker {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -121,12 +121,23 @@ Cash-on-delivery orders start at PLACED.
 
 | # | Phase | Contents | Status |
 |---|---|---|---|
-| 0 | Plan and skeleton | this plan, both projects, README | |
-| 1 | Catalog backend | schema, filters with facets, product pages, home, demo nursery, tests | |
-| 2 | Storefront | design system, header/footer, home, listings, product page | |
-| 3 | Bag and checkout | bag, coupons, zones with Dhaka-only rule, COD orders, thank-you, tracking | |
+| 0 | Plan and skeleton | this plan, both projects, README | done |
+| 1 | Catalog backend | schema, filters with facets, product pages, home, demo nursery, tests | done |
+| 2 | Storefront | design system, header/footer, home, listings, product page | done |
+| 3 | Bag and checkout | bag, coupons, zones with Dhaka-only rule, COD orders, thank-you, tracking | done |
 | 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | |
 | 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | |
 | 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | |
 | 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | |
 | 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | |
+
+### Notes from building
+
+- Order numbers look like `SB10001`. Guests open their thank-you page with a random token in the
+  link; tracking needs the order number plus the phone number used.
+- Search matches English, Bangla and botanical names. Bangla uses a plain "contains" match because
+  PostgreSQL's text parser may not split Bangla into words.
+- The home page is built at `next build` time and refreshed every 30 s, so the backend must be
+  reachable during a production build (handled in phase 8).
+- Header account and wishlist icons and footer `/pages/*` and `/guides` links lead nowhere until
+  phases 4 and 7.
