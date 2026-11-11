@@ -1,0 +1,24 @@
+# Build output
+target/
+node_modules/
+.next/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Uploaded files from local runs
+backend/storage/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+
+# Next.js generated files
+next-env.d.ts
+*.tsbuildinfo

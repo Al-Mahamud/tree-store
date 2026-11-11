@@ -1,0 +1,8 @@
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+store:
+  storage-root: ${java.io.tmpdir}/shobuj-test-storage/${random.uuid}

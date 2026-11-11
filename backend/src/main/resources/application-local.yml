@@ -1,0 +1,9 @@
+# Local runs over plain http.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+logging:
+  level:
+    com.shobuj: debug
