@@ -9,6 +9,7 @@ export const site = {
   whatsapp: "+880 1700-000000",
   email: "hello@shobuj.example",
   address: "Nursery Road, Savar, Dhaka",
+  /** Only a fallback: the shop sets delivery fees in the admin area. */
   freeDeliveryOver: 5000,
   deliveryFees: { insideDhaka: 100, outsideDhaka: 200 },
   guaranteeDays: 30,

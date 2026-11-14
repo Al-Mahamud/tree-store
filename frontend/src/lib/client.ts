@@ -50,3 +50,26 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   }
   return data as T;
 }
+
+/** Sends a file as a browser form does (multipart), with the CSRF token. */
+export async function upload<T>(path: string, file: File, field = "file"): Promise<T> {
+  const data = new FormData();
+  data.append(field, file);
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, {
+      method: "POST",
+      headers: { Accept: "application/json", "X-XSRF-TOKEN": await csrfToken() },
+      credentials: "same-origin",
+      body: data,
+    });
+  } catch {
+    throw new ApiError(0, "network", "We couldn't reach the shop. Check your connection and try again.");
+  }
+  const text = await response.text();
+  const body = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    throw new ApiError(response.status, body?.code ?? "unknown", body?.message ?? (response.status === 413 ? "That file is too big." : "Upload failed."), body?.fields ?? {});
+  }
+  return body as T;
+}

@@ -3,14 +3,14 @@ import { ArrowRight, ArrowUpRight, Boxes, CloudSun, HeartHandshake, PawPrint, Sh
 import { api } from "@/lib/api";
 import { site } from "@/config/site";
 import { taka } from "@/lib/money";
-import type { Collection, ProductCard } from "@/lib/types";
+import type { Collection, ProductCard, DeliveryFees } from "@/lib/types";
 import { ProductRail } from "@/components/shop/ProductRail";
 import { ProductCardView } from "@/components/shop/ProductCardView";
 import { SectionHeading } from "@/components/shop/SectionHeading";
 
 /* eslint-disable @next/next/no-img-element */
 export default async function HomePage() {
-  const home = await api.home();
+  const [home, fees] = await Promise.all([api.home(), api.delivery()]);
   const [monsoon, ...others] = home.collections;
   const star = home.fruitTrees[0];
 
@@ -57,7 +57,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <HowItArrives />
+      <HowItArrives fees={fees} />
     </>
   );
 }
@@ -187,11 +187,11 @@ function CollectionCard({ collection }: { collection: Collection }) {
   );
 }
 
-function HowItArrives() {
+function HowItArrives({ fees }: { fees: DeliveryFees }) {
   const steps = [
     { icon: Sprout, title: "Raised in our nursery", text: "Every plant is grown and hardened outdoors, so it is ready for real conditions." },
     { icon: Boxes, title: "Packed to travel", text: "Soil wrapped, stems supported and boxes ventilated. Large trees go by our own van." },
-    { icon: Truck, title: "At your door in 1–4 days", text: `Inside Dhaka ${taka(site.deliveryFees.insideDhaka)}, outside Dhaka ${taka(site.deliveryFees.outsideDhaka)}. Free over ${taka(site.freeDeliveryOver)}.` },
+    { icon: Truck, title: "At your door in 1–4 days", text: `Inside Dhaka ${taka(fees.insideDhaka)}, outside Dhaka ${taka(fees.outsideDhaka)}. Free over ${taka(fees.freeOver)}.` },
     { icon: HeartHandshake, title: `${site.guaranteeDays}-day guarantee`, text: "If it arrives unhealthy or struggles in the first month, we replace it." },
   ];
   return (

@@ -147,6 +147,9 @@ export type Cart = {
 
 export type Zone = "DHAKA" | "OUTSIDE";
 
+/** Delivery fees in taka, as the shop has set them. */
+export type DeliveryFees = { insideDhaka: number; outsideDhaka: number; freeOver: number };
+
 export type Quote = {
   subtotal: number;
   discount: number;
@@ -179,6 +182,9 @@ export type OrderView = {
   events: { status: string; note: string | null; at: string }[];
   /** Set while an online order waits for payment. */
   paymentExpiresAt: string | null;
+  /** Set when the order is shipped with a courier. */
+  courier: string | null;
+  trackingCode: string | null;
 };
 
 export type PaymentOptions = { online: boolean; holdMinutes: number };

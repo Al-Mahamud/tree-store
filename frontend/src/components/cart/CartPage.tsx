@@ -1,9 +1,9 @@
 "use client";
 
+import { useDeliveryFees } from "@/lib/useDeliveryFees";
 import Link from "next/link";
 import { ArrowRight, Lock, MapPin, Sprout } from "lucide-react";
 import { taka } from "@/lib/money";
-import { site } from "@/config/site";
 import { useCart } from "./CartProvider";
 import { CartLines } from "./CartLines";
 import { CouponForm } from "./CouponForm";
@@ -11,6 +11,7 @@ import { FreeDeliveryBar } from "./FreeDeliveryBar";
 
 export function CartPage() {
   const { cart } = useCart();
+  const fees = useDeliveryFees();
   if (!cart) return <div className="container-page min-h-[50vh] py-16"><div className="h-12 w-56 animate-pulse rounded-full bg-mist" /></div>;
   if (cart.items.length === 0) {
     return (
@@ -42,7 +43,7 @@ export function CartPage() {
             <dl className="space-y-2 border-t border-line pt-5 text-sm">
               <div className="flex justify-between"><dt className="text-muted">Plants</dt><dd className="tabular-nums">{taka(cart.subtotal)}</dd></div>
               {cart.discount > 0 && <div className="flex justify-between text-ok"><dt>Discount</dt><dd className="tabular-nums">−{taka(cart.discount)}</dd></div>}
-              <div className="flex justify-between"><dt className="text-muted">Delivery</dt><dd className="text-muted">{cart.coupon?.freeShipping || cart.remainingForFreeDelivery === 0 ? "Free" : `From ${taka(site.deliveryFees.insideDhaka)}`}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Delivery</dt><dd className="text-muted">{cart.coupon?.freeShipping || cart.remainingForFreeDelivery === 0 ? "Free" : `From ${taka(fees.insideDhaka)}`}</dd></div>
             </dl>
             <div className="flex items-baseline justify-between border-t border-line pt-4">
               <span className="font-semibold">Estimated total</span>

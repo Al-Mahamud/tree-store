@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeliveryFees } from "@/lib/useDeliveryFees";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ const empty: Form = { name: "", phone: "", email: "", address: "", area: "", cit
 /* eslint-disable @next/next/no-img-element */
 export function CheckoutForm() {
   const { cart, refresh } = useCart();
+  const fees = useDeliveryFees();
   const router = useRouter();
   const [form, setForm] = useState<Form>(empty);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -185,7 +187,7 @@ export function CheckoutForm() {
           <fieldset>
             <legend className="mb-3 text-sm font-semibold">Where should we deliver?</legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              {([["DHAKA", "Inside Dhaka", "1–2 days, our own van", site.deliveryFees.insideDhaka], ["OUTSIDE", "Outside Dhaka", "2–4 days, by courier", site.deliveryFees.outsideDhaka]] as const).map(([value, label, time, price]) => (
+              {([["DHAKA", "Inside Dhaka", "1–2 days, our own van", fees.insideDhaka], ["OUTSIDE", "Outside Dhaka", "2–4 days, by courier", fees.outsideDhaka]] as const).map(([value, label, time, price]) => (
                 <label key={value} className={`flex cursor-pointer items-start gap-3 rounded-[1.25rem] border p-4 transition ${form.zone === value ? "border-forest bg-white" : "border-line hover:border-forest/50"}`}>
                   <input type="radio" name="zone" value={value} checked={form.zone === value} onChange={() => set("zone", value)} className="mt-1 accent-forest" />
                   <span className="flex-1"><span className="block text-sm font-semibold">{label}</span><span className="block text-xs text-muted">{time}</span></span>

@@ -26,7 +26,7 @@ Demo coupons: `GREEN10` (10% off over ৳1,000, up to ৳500), `MONSOON300` (৳
 `FREEDELIVERY` (free delivery over ৳2,000), `SPRING25` (expired, for testing).
 
 Demo plant pictures are drawn by `backend/src/test/java/.../support/DemoArt.java` and written to
-`backend/storage/demo/`. Real photos will be uploaded through the admin (phase 6).
+`backend/storage/demo/`. Real photos are uploaded in the admin area (Plants → a plant → Pictures).
 
 ## Frontend
 
@@ -42,6 +42,11 @@ npm run dev       # http://localhost:3000
 Demo account: mobile `01755555555`, password `shobuj-demo` (Nadia, with a saved address, two past
 orders and three saved plants). Sign-up codes in local runs appear at
 http://localhost:8080/api/v1/test-texts (texts are only logged).
+
+Admin area: http://localhost:3000/admin, mobile `01999999999`, password `shobuj-admin-1` (Farhana,
+the nursery manager). Local runs start with a few open orders to confirm and send. On a real shop
+the first staff account comes from `ADMIN_PHONE` and `ADMIN_PASSWORD` (at least 10 characters) when
+there is none; add the rest of the team under Team.
 
 Online payment in local runs goes to a fake SSLCommerz page (test sources only, no real money).
 For the real sandbox, set `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD` and a public `WEB_URL`.

@@ -41,6 +41,14 @@ store:
   media-url: /media
   # Where shoppers' browsers open the shop; payment pages send them back here.
   web-url: ${WEB_URL:http://localhost:3000}
+  admin:
+    # The first staff account, made at start-up when there is none. Change the password after signing in.
+    first-staff-name: ${ADMIN_NAME:Owner}
+    first-staff-phone: ${ADMIN_PHONE:}
+    first-staff-password: ${ADMIN_PASSWORD:}
+    # An option with this many plants or fewer shows as running low.
+    low-stock: 3
+  # Delivery fees until the shop sets its own in the admin area.
   delivery:
     inside-dhaka: 100
     outside-dhaka: 200

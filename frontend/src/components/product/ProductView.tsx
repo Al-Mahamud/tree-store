@@ -6,6 +6,7 @@ import { MapPin, PawPrint, Ruler, ShieldCheck, Sprout, TrendingUp, Apple, Home a
 import type { ProductDetail } from "@/lib/types";
 import { careLabels, growthLabels, lightLabels, placementLabels, waterLabels } from "@/lib/care";
 import { site } from "@/config/site";
+import { useDeliveryFees } from "@/lib/useDeliveryFees";
 import { taka } from "@/lib/money";
 import { Price } from "@/components/ui/Price";
 import { CareLevelIcon, LightIcon, WaterIcon } from "@/components/ui/CareIcon";
@@ -16,6 +17,7 @@ import { SaveButton } from "@/components/account/SaveButton";
 const LOW_STOCK = 3;
 
 export function ProductView({ product, initialPlanter }: { product: ProductDetail; initialPlanter?: string }) {
+  const fees = useDeliveryFees();
   const start = product.planters.find((p) => p.name.toLowerCase() === initialPlanter?.toLowerCase()) ?? product.planters[0];
   const [planterId, setPlanterId] = useState(start?.id);
   const planter = product.planters.find((p) => p.id === planterId) ?? product.planters[0];
@@ -149,7 +151,7 @@ export function ProductView({ product, initialPlanter }: { product: ProductDetai
           )}
           <Accordion title="Delivery & guarantee">
             <ul className="space-y-2">
-              <li className="flex gap-2"><Truck size={15} className="mt-0.5 shrink-0 text-moss" />Inside Dhaka 1–2 days ({taka(site.deliveryFees.insideDhaka)}), outside Dhaka 2–4 days ({taka(site.deliveryFees.outsideDhaka)}). Free over {taka(site.freeDeliveryOver)}.</li>
+              <li className="flex gap-2"><Truck size={15} className="mt-0.5 shrink-0 text-moss" />Inside Dhaka 1–2 days ({taka(fees.insideDhaka)}), outside Dhaka 2–4 days ({taka(fees.outsideDhaka)}). Free over {taka(fees.freeOver)}.</li>
               <li className="flex gap-2"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-moss" />{site.guaranteeDays}-day healthy-plant guarantee: if it arrives unwell or fails to settle, send us a photo and we replace it.</li>
             </ul>
           </Accordion>

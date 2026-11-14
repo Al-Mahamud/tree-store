@@ -127,7 +127,7 @@ Cash-on-delivery orders start at PLACED.
 | 3 | Bag and checkout | bag, coupons, zones with Dhaka-only rule, COD orders, thank-you, tracking | done |
 | 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | done |
 | 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | done |
-| 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | |
+| 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | done |
 | 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | |
 | 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | |
 
@@ -180,3 +180,32 @@ Cash-on-delivery orders start at PLACED.
   Online payment is hidden until the credentials are set. Local runs use a fake gateway from the
   test sources ("TEST GATEWAY · NOT REAL MONEY").
 - Order texts (confirmed, on the way, cancelled) are left for phase 7.
+
+### Notes from phase 6 (admin)
+
+- Built from Haat's admin, adapted to plants. Staff sign in at `/admin` with a mobile number and
+  password (kept apart from customer accounts). Everyone on the team can do everything; switching
+  someone off signs them out at once, and nobody can switch off themselves or the last account.
+- **Orders**: a "to do" queue (placed, confirmed, on the way), oldest first, filterable by inside or
+  outside Dhaka. Placed → Confirmed → Sent out → Delivered. Sending out records the courier and its
+  tracking number, which the shopper then sees on their order page. A sent order can still be
+  cancelled when the courier brings it back, with a choice to leave the plants out of stock (wilted).
+  Cancelling a paid order shows a refund due; the refund is made in the SSLCommerz panel and its
+  reference recorded here. Cash orders count as paid when delivered. Print gives a packing slip.
+- **Plant editor**: care facts, Bangla and botanical names, planters (name, kind, colour, order) and
+  a size × planter grid where each offered option has its own height, price, old price, stock, SKU
+  (suggested) and "inside Dhaka only". It all saves at once; options can swap sizes in one save.
+  Removing a planter removes its options but keeps its pictures as shared ones. A plant on sale needs
+  at least one option, and every planter needs a size.
+- **Pictures** save as they are uploaded (JPEG, PNG or WebP, checked by their bytes, up to 5 MB), each
+  shown with every planter or with one planter only; the first is the one on cards.
+- **Stock**: one small grid per plant (planters × sizes), saved per box. "Running low" means 3 or
+  fewer (`store.admin.low-stock`).
+- **Categories** (two levels, with a picture and description) and **collections** (banner, tagline,
+  order on the home page, hidden or shown). Web addresses are fixed when made.
+- **Delivery fees** are set in the admin and stored in the database; the shop, bag and checkout read
+  them from `GET /api/v1/delivery`. Until they are saved, the fees in `application.yml` apply.
+- Dashboard: today's orders and sales, what to confirm and send, refunds due, running low, the last
+  7 days and the best sellers of the last 30 days.
+- Also fixed: a delivered cash order said "Paid online" on the shopper's order page.
+

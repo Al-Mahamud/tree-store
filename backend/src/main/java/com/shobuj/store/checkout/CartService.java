@@ -1,7 +1,6 @@
 package com.shobuj.store.checkout;
 
 import com.shobuj.store.shared.ApiException;
-import com.shobuj.store.shared.StoreProperties;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
@@ -37,13 +36,13 @@ public class CartService {
 
     private final JdbcClient jdbc;
     private final Coupons coupons;
-    private final StoreProperties properties;
+    private final DeliveryFees fees;
     private final Clock clock;
 
-    CartService(JdbcClient jdbc, Coupons coupons, StoreProperties properties, Clock clock) {
+    CartService(JdbcClient jdbc, Coupons coupons, DeliveryFees fees, Clock clock) {
         this.jdbc = jdbc;
         this.coupons = coupons;
-        this.properties = properties;
+        this.fees = fees;
         this.clock = clock;
     }
 
@@ -172,7 +171,7 @@ public class CartService {
         }
         int discount = coupon == null ? 0 : coupon.discount();
         int total = subtotal - discount;
-        int freeOver = properties.delivery().freeOver();
+        int freeOver = fees.current().freeOver();
         boolean freeByCoupon = coupon != null && coupon.freeShipping();
         int remaining = freeByCoupon ? 0 : Math.max(0, freeOver - total);
         boolean canCheckout = !lines.isEmpty() && lines.stream().allMatch(l -> l.problem() == null);

@@ -10,13 +10,13 @@ import { BagButton } from "./BagButton";
 
 /* eslint-disable @next/next/no-img-element */
 export async function Header() {
-  const [categories, collections] = await Promise.all([api.categories(), api.collections()]);
+  const [categories, collections, fees] = await Promise.all([api.categories(), api.collections(), api.delivery()]);
   return (
     <>
       <div className="bg-forest-deep text-bone">
         <p className="container-page flex items-center justify-center gap-2 py-2 text-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-lime" aria-hidden />
-          Free delivery over ৳{site.freeDeliveryOver.toLocaleString("en-IN")}
+          Free delivery over ৳{fees.freeOver.toLocaleString("en-IN")}
           <span className="hidden sm:inline">· {site.guaranteeDays}-day healthy-plant guarantee</span>
         </p>
       </div>

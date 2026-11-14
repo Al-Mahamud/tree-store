@@ -1,6 +1,6 @@
 import "server-only";
 import { notFound } from "next/navigation";
-import type { CategoryNode, Collection, Home, OrderView, ProductCard, ProductDetail, ProductPage } from "./types";
+import type { CategoryNode, Collection, DeliveryFees, Home, OrderView, ProductCard, ProductDetail, ProductPage } from "./types";
 
 const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -20,6 +20,7 @@ export const api = {
   collection: (slug: string) => get<Collection>(`/collections/${encodeURIComponent(slug)}`),
   products: (query: URLSearchParams) => get<ProductPage>(`/products?${query}`),
   product: (slug: string) => get<ProductDetail>(`/products/${encodeURIComponent(slug)}`),
+  delivery: () => get<DeliveryFees>("/delivery", 60),
   related: (slug: string) => get<ProductCard[]>(`/products/${encodeURIComponent(slug)}/related`),
   /** Never cached: order status changes. */
   order: async (number: string, token: string): Promise<OrderView> => {

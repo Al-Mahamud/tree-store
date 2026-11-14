@@ -62,10 +62,15 @@ export function OrderDetails({ order }: { order: OrderView }) {
           <p className="mt-3 font-semibold">{order.name}</p>
           <p className="text-ink-soft">{order.address}<br />{order.area}, {order.city}<br />{order.phone}</p>
           {order.note && <p className="mt-2 text-xs italic text-muted">“{order.note}”</p>}
+          {order.courier && (
+            <p className="mt-3 rounded-2xl bg-white/70 px-3 py-2 text-xs">
+              Sent with <strong>{order.courier}</strong>{order.trackingCode && <> · tracking number <strong className="font-mono">{order.trackingCode}</strong></>}
+            </p>
+          )}
         </div>
         <div className="rounded-[2rem] bg-mist p-5 text-sm md:p-7">
           <h2 className="font-display text-2xl">Payment</h2>
-          <p className="mt-3">{order.paymentStatus === "PAID" ? (order.status === "CANCELLED" ? "Paid online — refund on its way" : "Paid online") : order.paymentStatus === "REFUNDED" ? "Refunded" : order.paymentMethod === "COD" ? (order.status === "CANCELLED" ? "Nothing to pay" : `Cash on delivery — please keep ${taka(order.total)} ready.`) : order.status === "CANCELLED" ? "Not paid" : "Online, waiting for payment"}</p>
+          <p className="mt-3">{order.paymentStatus === "PAID" ? (order.status === "CANCELLED" ? "Paid online — refund on its way" : order.paymentMethod === "COD" ? "Paid in cash" : "Paid online") : order.paymentStatus === "REFUNDED" ? "Refunded" : order.paymentMethod === "COD" ? (order.status === "CANCELLED" ? "Nothing to pay" : `Cash on delivery — please keep ${taka(order.total)} ready.`) : order.status === "CANCELLED" ? "Not paid" : "Online, waiting for payment"}</p>
         </div>
       </div>
     </div>

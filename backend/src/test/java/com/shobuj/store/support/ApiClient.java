@@ -52,6 +52,45 @@ public final class ApiClient {
         return send("DELETE", path, null);
     }
 
+    /** A multipart file upload, as a browser form sends it. */
+    public Response upload(String path, String field, String filename, String contentType, byte[] content) {
+        try {
+            String boundary = "----shobuj" + System.nanoTime();
+            java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+            body.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + field + "\"; filename=\""
+                    + filename + "\"\r\nContent-Type: " + contentType + "\r\n\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            body.write(content);
+            body.write(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
+                    .header("Accept", "application/json")
+                    .header("X-XSRF-TOKEN", csrfToken())
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+                    .build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            String text = response.body();
+            return new Response(response.statusCode(), text == null || text.isBlank() ? JSON.nullNode() : JSON.readTree(text));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** The raw status of a GET, for files that aren't JSON. */
+    public int status(String path) {
+        try {
+            return http.send(HttpRequest.newBuilder(URI.create(baseUrl + path)).build(),
+                    HttpResponse.BodyHandlers.discarding()).statusCode();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** A write without the CSRF header, to prove the protection works. */
     public Response postWithoutCsrf(String path, Object body) {
         return send("POST", path, body, false);

@@ -248,6 +248,10 @@ public class DemoData {
     public static final String DEMO_PHONE = "01755555555";
     public static final String DEMO_PASSWORD = "shobuj-demo";
 
+    /** A demo staff account for the admin area. */
+    public static final String STAFF_PHONE = "01999999999";
+    public static final String STAFF_PASSWORD = "shobuj-admin-1";
+
     /** Days ago, then slug / size / quantity triples. */
     static final List<Object[]> DEMO_ORDERS = List.of(
             new Object[] {12, "amrapali-mango", "SMALL", 2, "snake-plant", "SMALL", 1},
@@ -335,6 +339,84 @@ public class DemoData {
                          order by p.featured desc, p.sold_count desc, pl.position, pi.position limit 1)
                     """).update();
             demoCustomer(now);
+            jdbc.sql("insert into staff (name, phone, password_hash) values ('Farhana (nursery manager)', :p, :h)")
+                    .param("p", STAFF_PHONE).param("h", passwords.encode(STAFF_PASSWORD)).update();
+            demoQueue(now);
+        }
+
+        /**
+         * Guest orders from the last few days for the admin area: hours ago, name, phone, address, area,
+         * city, zone, status, payment method, then slug / size / quantity triples.
+         */
+        static final List<Object[]> QUEUE = List.of(
+                new Object[] {3, "Tanvir Hasan", "01712000101", "House 7, Road 3, Sector 11", "Uttara", "Dhaka", "DHAKA",
+                        "PLACED", "COD", "amrapali-mango", "MEDIUM", 1, "kagzi-lemon", "SMALL", 2},
+                new Object[] {9, "Sharmin Akter", "01812000202", "Flat 4B, 22 Lake Circus", "Kalabagan", "Dhaka", "DHAKA",
+                        "PLACED", "ONLINE", "monstera-deliciosa", "MEDIUM", 1},
+                new Object[] {20, "Rafiq Ullah", "01912000303", "Shapla Villa, College Road", "Kotwali", "Chattogram", "OUTSIDE",
+                        "CONFIRMED", "COD", "snake-plant", "SMALL", 3, "money-plant", "SMALL", 2},
+                new Object[] {30, "Mehnaz Chowdhury", "01612000404", "House 51, Road 27", "Banani", "Dhaka", "DHAKA",
+                        "CONFIRMED", "ONLINE", "krishnachura", "LARGE", 1},
+                new Object[] {52, "Arif Mahmud", "01512000505", "Holding 12, Station Road", "Sadar", "Rajshahi", "OUTSIDE",
+                        "SHIPPED", "COD", "neem", "SMALL", 4},
+                new Object[] {75, "Lubna Sultana", "01312000606", "Flat 9A, Concord Tower", "Mohakhali", "Dhaka", "DHAKA",
+                        "DELIVERED", "ONLINE", "ficus-bonsai", "SMALL", 1, "snake-plant", "MEDIUM", 1},
+                new Object[] {100, "Kamal Hossain", "01712000707", "Road 2, Block C", "Mirpur 10", "Dhaka", "DHAKA",
+                        "DELIVERED", "COD", "amrapali-mango", "SMALL", 3},
+                new Object[] {130, "Nusrat Jahan", "01812000808", "House 3, Ambagan", "Sylhet Sadar", "Sylhet", "OUTSIDE",
+                        "DELIVERED", "COD", "money-plant", "MEDIUM", 2});
+
+        private void demoQueue(Instant now) {
+            List<String> flow = List.of("PLACED", "CONFIRMED", "SHIPPED", "DELIVERED");
+            for (Object[] o : QUEUE) {
+                Instant placed = now.minus(Duration.ofHours((Integer) o[0]));
+                String status = (String) o[7];
+                String method = (String) o[8];
+                boolean paid = method.equals("ONLINE") || status.equals("DELIVERED");
+                String number = "SB" + jdbc.sql("select nextval('order_number_seq')").query(Long.class).single();
+                long order = jdbc.sql("""
+                                insert into orders (number, access_token, name, phone, address, area, city, zone,
+                                                    subtotal, shipping_fee, total, payment_method, payment_status, paid_at,
+                                                    status, courier, tracking_code, created_at, updated_at)
+                                values (:n, md5(random()::text), :name, :phone, :address, :area, :city, :zone, 0, 0, 0,
+                                        :method, :paid, :paidAt, :status, :courier, :tracking, :at, :at)
+                                returning id""")
+                        .param("n", number).param("name", o[1]).param("phone", o[2]).param("address", o[3])
+                        .param("area", o[4]).param("city", o[5]).param("zone", o[6]).param("method", method)
+                        .param("paid", paid ? "PAID" : "UNPAID").param("paidAt", paid ? Timestamp.from(placed) : null)
+                        .param("status", status)
+                        .param("courier", o[6].equals("OUTSIDE") && flow.indexOf(status) >= 2 ? "Sundarban Courier" : null)
+                        .param("tracking", o[6].equals("OUTSIDE") && flow.indexOf(status) >= 2 ? "SCS-48" + o[0] + "17" : null)
+                        .param("at", Timestamp.from(placed))
+                        .query(Long.class).single();
+                for (int i = 9; i < o.length; i += 3) {
+                    jdbc.sql("""
+                                    insert into order_items (order_id, variant_id, product_id, product_slug, product_name, planter,
+                                                             size, height, sku, image_url, unit_price, quantity)
+                                    select :o, v.id, p.id, p.slug, p.name, pl.name, :sizeLabel, v.height, v.sku,
+                                           (select url from product_images where product_id = p.id order by position limit 1),
+                                           v.price, :q
+                                      from variants v join products p on p.id = v.product_id join planters pl on pl.id = v.planter_id
+                                     where p.slug = :slug and v.size = :size
+                                     order by v.stock > 0 desc, pl.position limit 1""")
+                            .param("o", order).param("slug", o[i]).param("size", o[i + 1])
+                            .param("sizeLabel", com.shobuj.store.catalog.Care.Size.valueOf((String) o[i + 1]).label)
+                            .param("q", o[i + 2]).update();
+                }
+                int fee = o[6].equals("DHAKA") ? 100 : 200;
+                jdbc.sql("""
+                                update orders o set subtotal = s.sum, total = s.sum + case when s.sum >= 5000 then 0 else :fee end,
+                                                    shipping_fee = case when s.sum >= 5000 then 0 else :fee end
+                                  from (select sum(unit_price * quantity) as sum from order_items where order_id = :o) s
+                                 where o.id = :o""")
+                        .param("o", order).param("fee", fee).update();
+                for (int step = 0; step <= flow.indexOf(status); step++) {
+                    jdbc.sql("insert into order_events (order_id, status, actor, created_at) values (:o, :s, :a, :at)")
+                            .param("o", order).param("s", flow.get(step))
+                            .param("a", step == 0 ? "customer" : "staff:Farhana (nursery manager)")
+                            .param("at", Timestamp.from(placed.plus(Duration.ofHours(step * 2L)))).update();
+                }
+            }
         }
 
         /** A customer with a saved address, two delivered orders and saved plants. */
