@@ -13,7 +13,7 @@ public class TestStoreApplication {
     public static void main(String[] args) {
         SpringApplication.from(StoreApplication::main)
                 .with(EmbeddedPostgresConfig.class, DemoData.class)
-                .withAdditionalProfiles("local")
+                .withAdditionalProfiles("local", "fake-gateway")
                 .run(args);
     }
 }

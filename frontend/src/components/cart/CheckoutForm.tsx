@@ -7,7 +7,7 @@ import { Banknote, Check, CreditCard, Lock, MapPin, Plus } from "lucide-react";
 import { ApiError, request } from "@/lib/client";
 import { taka } from "@/lib/money";
 import { site } from "@/config/site";
-import type { Quote, SavedAddress, Zone } from "@/lib/types";
+import type { PaymentOptions, Quote, SavedAddress, Zone } from "@/lib/types";
 import { useAccount } from "@/components/account/AccountProvider";
 import { Field } from "@/components/ui/Field";
 import { useCart } from "./CartProvider";
@@ -30,6 +30,10 @@ export function CheckoutForm() {
   const [saved, setSaved] = useState<SavedAddress[]>([]);
   const [chosen, setChosen] = useState<number | "new">("new");
   const [saveAddress, setSaveAddress] = useState(true);
+  const [payOptions, setPayOptions] = useState<PaymentOptions | null>(null);
+  useEffect(() => {
+    request<PaymentOptions>("GET", "/payments/options").then(setPayOptions).catch(() => setPayOptions(null));
+  }, []);
 
   // Signed in: start from the default saved address, or at least the customer's name and number.
   useEffect(() => {
@@ -214,11 +218,14 @@ export function CheckoutForm() {
               <Banknote size={22} strokeWidth={1.5} className="text-moss" />
               <span className="flex-1"><span className="block text-sm font-semibold">Cash on delivery</span><span className="block text-xs text-muted">Check your plants, then pay the delivery team.</span></span>
             </label>
-            <label className="flex cursor-not-allowed items-center gap-4 rounded-[1.25rem] border border-line p-4 opacity-60">
-              <input type="radio" name="payment" disabled />
-              <CreditCard size={22} strokeWidth={1.5} />
-              <span className="flex-1"><span className="block text-sm font-semibold">Card, bKash or Nagad</span><span className="block text-xs text-muted">Online payment is coming soon.</span></span>
+            <label className={`flex items-center gap-4 rounded-[1.25rem] border p-4 ${!payOptions?.online ? "cursor-not-allowed border-line opacity-60" : form.paymentMethod === "ONLINE" ? "cursor-pointer border-forest bg-white" : "cursor-pointer border-line"}`}>
+              <input type="radio" name="payment" disabled={!payOptions?.online} checked={form.paymentMethod === "ONLINE"} onChange={() => set("paymentMethod", "ONLINE")} className="accent-forest" />
+              <CreditCard size={22} strokeWidth={1.5} className={payOptions?.online ? "text-moss" : ""} />
+              <span className="flex-1"><span className="block text-sm font-semibold">Card, bKash or Nagad</span><span className="block text-xs text-muted">{payOptions?.online ? "Pay now on the secure SSLCommerz page." : "Not available right now."}</span></span>
             </label>
+            {form.paymentMethod === "ONLINE" && payOptions && (
+              <p className="rounded-2xl bg-mist px-4 py-3 text-xs text-ink-soft">After you place the order you&rsquo;ll pay on SSLCommerz. Your plants are set aside for {payOptions.holdMinutes} minutes; if the payment doesn&rsquo;t go through you can try again or switch to cash.</p>
+            )}
           </div>
         </Step>
       </div>
@@ -254,7 +261,7 @@ export function CheckoutForm() {
           </div>
           {formError && <p role="alert" className="mt-5 rounded-2xl bg-sale/10 px-4 py-3 text-sm text-sale">{formError}</p>}
           <button type="submit" disabled={placing || blocked || !cart?.canCheckout} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-forest py-4 text-sm font-semibold text-bone transition hover:bg-forest-deep disabled:cursor-not-allowed disabled:opacity-50">
-            <Lock size={15} /> {placing ? "Placing your order…" : `Place order${quote ? ` · ${taka(quote.total)}` : ""}`}
+            <Lock size={15} /> {placing ? (form.paymentMethod === "ONLINE" ? "Opening payment…" : "Placing your order…") : `${form.paymentMethod === "ONLINE" ? "Place order & pay" : "Place order"}${quote ? ` · ${taka(quote.total)}` : ""}`}
           </button>
           <p className="mt-3 text-center text-xs text-muted">Covered by our {site.guaranteeDays}-day healthy-plant guarantee.</p>
         </div>

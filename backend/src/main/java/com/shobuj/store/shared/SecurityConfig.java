@@ -19,7 +19,8 @@ class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.spa())
+        // The payment gateway posts its callbacks without a CSRF token; they are checked with the gateway instead.
+        http.csrf(csrf -> csrf.spa().ignoringRequestMatchers("/api/v1/payments/sslcommerz/**", "/api/v1/test-gateway/**"))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable())

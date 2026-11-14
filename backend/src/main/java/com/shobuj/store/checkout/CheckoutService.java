@@ -43,8 +43,11 @@ public class CheckoutService {
     private final Coupons coupons;
     private final StoreProperties properties;
     private final Clock clock;
+    private final com.shobuj.store.payment.PaymentService payments;
 
-    CheckoutService(JdbcClient jdbc, CartService carts, Coupons coupons, StoreProperties properties, Clock clock) {
+    CheckoutService(JdbcClient jdbc, CartService carts, Coupons coupons, StoreProperties properties, Clock clock,
+                    com.shobuj.store.payment.PaymentService payments) {
+        this.payments = payments;
         this.jdbc = jdbc;
         this.carts = carts;
         this.coupons = coupons;
@@ -134,9 +137,9 @@ public class CheckoutService {
         long orderId = jdbc.sql("""
                         insert into orders (number, access_token, customer_id, name, phone, email, address, area, city,
                                             zone, note, subtotal, discount, shipping_fee, total, coupon_code,
-                                            payment_method, status)
+                                            payment_method, status, payment_expires_at)
                         values (:number, :token, :customerId, :name, :phone, :email, :address, :area, :city, :zone,
-                                :note, :subtotal, :discount, :shipping, :total, :coupon, :method, :status)
+                                :note, :subtotal, :discount, :shipping, :total, :coupon, :method, :status, :expires)
                         returning id""")
                 .param("number", orderNumber).param("token", token).param("customerId", customerId)
                 .param("name", customer.name()).param("phone", customer.phone()).param("email", customer.email())
@@ -145,6 +148,7 @@ public class CheckoutService {
                 .param("subtotal", quote.subtotal()).param("discount", quote.discount())
                 .param("shipping", quote.shippingFee()).param("total", quote.total())
                 .param("coupon", quote.couponCode()).param("method", method.name()).param("status", status)
+                .param("expires", method == PaymentMethod.ONLINE ? java.sql.Timestamp.from(payments.holdUntil()) : null)
                 .query(Long.class).single();
 
         for (Line line : lines) {

@@ -52,8 +52,11 @@ class CheckoutController {
     private final CheckoutService checkout;
     private final Bags bags;
     private final AddressService addresses;
+    private final com.shobuj.store.payment.PaymentService payments;
 
-    CheckoutController(CheckoutService checkout, Bags bags, AddressService addresses) {
+    CheckoutController(CheckoutService checkout, Bags bags, AddressService addresses,
+                       com.shobuj.store.payment.PaymentService payments) {
+        this.payments = payments;
         this.checkout = checkout;
         this.bags = bags;
         this.addresses = addresses;
@@ -73,9 +76,9 @@ class CheckoutController {
         String phone = BangladeshPhone.normalise(body.phone()).orElseThrow(() -> new ApiException(
                 HttpStatus.BAD_REQUEST, "request.invalid", "Please check the highlighted fields.",
                 Map.of("phone", "Enter an 11-digit mobile number, like 01712345678.")));
-        if (body.paymentMethod() == PaymentMethod.ONLINE) {
+        if (body.paymentMethod() == PaymentMethod.ONLINE && !payments.onlineAvailable()) {
             throw ApiException.badRequest("payment.unavailable",
-                    "Online payment is coming soon. Please choose cash on delivery.");
+                    "Online payment isn't available right now. Please choose cash on delivery.");
         }
         Customer customer = new Customer(body.name().trim(), phone, blankToNull(body.email()), body.address().trim(),
                 body.area().trim(), body.city().trim(), body.zone(), blankToNull(body.note()));
@@ -85,7 +88,15 @@ class CheckoutController {
                     customer.address(), customer.area(), customer.city(), customer.zone(), null));
         }
         bags.forget(request, response);
-        return new Placed(placed.number(), placed.accessToken(), placed.total(), null);
+        String paymentUrl = null;
+        if (body.paymentMethod() == PaymentMethod.ONLINE) {
+            try {
+                paymentUrl = payments.start(placed.orderId());
+            } catch (ApiException e) {
+                // The order is saved and waits for payment; its page offers to try again.
+            }
+        }
+        return new Placed(placed.number(), placed.accessToken(), placed.total(), paymentUrl);
     }
 
     private static String blankToNull(String value) {

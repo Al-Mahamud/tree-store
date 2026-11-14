@@ -177,7 +177,11 @@ export type OrderView = {
   total: number;
   couponCode: string | null;
   events: { status: string; note: string | null; at: string }[];
+  /** Set while an online order waits for payment. */
+  paymentExpiresAt: string | null;
 };
+
+export type PaymentOptions = { online: boolean; holdMinutes: number };
 
 export type Profile = { id: number; name: string; phone: string; email: string | null };
 

@@ -65,7 +65,7 @@ export function OrderDetails({ order }: { order: OrderView }) {
         </div>
         <div className="rounded-[2rem] bg-mist p-5 text-sm md:p-7">
           <h2 className="font-display text-2xl">Payment</h2>
-          <p className="mt-3">{order.paymentMethod === "COD" ? `Cash on delivery — please keep ${taka(order.total)} ready.` : order.paymentStatus === "PAID" ? "Paid online" : "Online payment pending"}</p>
+          <p className="mt-3">{order.paymentStatus === "PAID" ? (order.status === "CANCELLED" ? "Paid online — refund on its way" : "Paid online") : order.paymentStatus === "REFUNDED" ? "Refunded" : order.paymentMethod === "COD" ? (order.status === "CANCELLED" ? "Nothing to pay" : `Cash on delivery — please keep ${taka(order.total)} ready.`) : order.status === "CANCELLED" ? "Not paid" : "Online, waiting for payment"}</p>
         </div>
       </div>
     </div>

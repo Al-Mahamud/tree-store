@@ -126,7 +126,7 @@ Cash-on-delivery orders start at PLACED.
 | 2 | Storefront | design system, header/footer, home, listings, product page | done |
 | 3 | Bag and checkout | bag, coupons, zones with Dhaka-only rule, COD orders, thank-you, tracking | done |
 | 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | done |
-| 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | |
+| 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | done |
 | 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | |
 | 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | |
 | 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | |
@@ -164,3 +164,19 @@ Cash-on-delivery orders start at PLACED.
   sign in. The header shows how many plants are saved.
 - The phone menu and other drawers render into `<body>`; the sticky header's blur made them only as
   tall as the header (the same fix as in Haat).
+
+### Notes from phase 5 (online payment)
+
+- Ported from Haat's tested payment code. An online order waits as PENDING_PAYMENT and holds its
+  plants for 30 minutes (`store.payment.expiry`) while the shopper pays on SSLCommerz (bKash, Nagad,
+  Rocket, cards).
+- A payment counts only when SSLCommerz's Validation API confirms the `val_id` for the same
+  `tran_id`, in BDT, for the exact amount; the IPN, the browser's return and a check every minute
+  can each report it, and confirming twice changes nothing. Every callback is stored.
+- After a failed or cancelled payment the order page offers "Pay now" again (up to 5 tries) or
+  "Pay cash on delivery instead". Unpaid orders are cancelled after 30 minutes and the plants go back
+  into stock; money that arrives later is recorded for a refund.
+- Settings: `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_BASE_URL`, `WEB_URL`.
+  Online payment is hidden until the credentials are set. Local runs use a fake gateway from the
+  test sources ("TEST GATEWAY · NOT REAL MONEY").
+- Order texts (confirmed, on the way, cancelled) are left for phase 7.

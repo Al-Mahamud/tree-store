@@ -24,7 +24,8 @@ public class OrderService {
     public record OrderView(String number, String status, String paymentMethod, String paymentStatus,
                             Instant placedAt, String name, String phone, String email, String address, String area,
                             String city, String zone, String note, List<Item> items, int subtotal, int discount,
-                            int shippingFee, int total, String couponCode, List<Event> events) {
+                            int shippingFee, int total, String couponCode, List<Event> events,
+                            Instant paymentExpiresAt) {
     }
 
     /** One line in a customer's order history. {@code itemCount} counts plants, {@code lineCount} options. */
@@ -150,14 +151,16 @@ public class OrderService {
                 .list();
         return jdbc.sql("""
                         select access_token, number, status, payment_method, payment_status, created_at, name, phone,
-                               email, address, area, city, zone, note, subtotal, discount, shipping_fee, total, coupon_code
+                               email, address, area, city, zone, note, subtotal, discount, shipping_fee, total, coupon_code,
+                               payment_expires_at
                           from orders where id = :id""")
                 .param("id", orderId)
                 .query((rs, n) -> new Row(orderId, rs.getString(1), new OrderView(rs.getString(2), rs.getString(3),
                         rs.getString(4), rs.getString(5), rs.getTimestamp(6).toInstant(), rs.getString(7),
                         rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12),
                         rs.getString(13), rs.getString(14), items, rs.getInt(15), rs.getInt(16), rs.getInt(17),
-                        rs.getInt(18), rs.getString(19), events)))
+                        rs.getInt(18), rs.getString(19), events,
+                        rs.getTimestamp(20) == null ? null : rs.getTimestamp(20).toInstant())))
                 .optional();
     }
 }
