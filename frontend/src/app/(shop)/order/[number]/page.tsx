@@ -51,7 +51,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         </div>
       )}
       {live && <div className="mt-6 rounded-[2rem] bg-white/60 p-6 md:p-10"><StatusTimeline order={order} /></div>}
-      <div className="mt-6"><OrderDetails order={order} /></div>
+      <div className="mt-6"><OrderDetails order={order} care={{ token }} /></div>
       {order.status !== "PENDING_PAYMENT" && <AccountNudge />}
       <div className="mt-10 flex flex-wrap justify-center gap-3">
         <Link href="/shop" className="rounded-full bg-forest px-8 py-3.5 text-sm font-semibold text-bone">Keep browsing</Link>

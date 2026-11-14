@@ -18,3 +18,10 @@ export function ago(iso: string): string {
   const hours = Math.round(minutes / 60);
   return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} d ago`;
 }
+
+const longDateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Dhaka" });
+
+/** "14 Nov 2026". */
+export function longDate(iso: string): string {
+  return longDateFormat.format(new Date(iso));
+}

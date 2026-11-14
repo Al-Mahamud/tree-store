@@ -34,6 +34,12 @@ class CatalogController {
         return catalog.home();
     }
 
+    /** Everything a search engine should know about, for the sitemap. */
+    @GetMapping("/sitemap")
+    CatalogService.Sitemap sitemap() {
+        return catalog.sitemap();
+    }
+
     @GetMapping("/categories")
     List<CategoryNode> categories() {
         return catalog.categoryTree();

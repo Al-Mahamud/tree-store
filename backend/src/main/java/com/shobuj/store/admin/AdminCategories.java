@@ -1,5 +1,6 @@
 package com.shobuj.store.admin;
 
+import com.shobuj.store.shared.Pictures;
 import com.shobuj.store.shared.ApiException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

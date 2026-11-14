@@ -128,7 +128,7 @@ Cash-on-delivery orders start at PLACED.
 | 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | done |
 | 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | done |
 | 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | done |
-| 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | |
+| 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | done (texts only, no email) |
 | 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | |
 
 ### Notes from building
@@ -209,3 +209,39 @@ Cash-on-delivery orders start at PLACED.
   7 days and the best sellers of the last 30 days.
 - Also fixed: a delivered cash order said "Paid online" on the shopper's order page.
 
+### Notes from phase 7 (reviews, texts, guides, search engines)
+
+- **Order texts** go through the outbox built in phase 4 (saved with the change, sent every
+  5 seconds, retried 3 times). Customers are texted when an order is received (cash at checkout, an
+  online order once paid, or switched to cash), when it is sent out (with the courier and tracking
+  number, and the cash to keep ready), and when it is cancelled (refund, "not charged" or "call us"
+  wording). Confirming (done by phone) and delivery aren't texted. Every text uses "Tk" and the plain
+  SMS alphabet so it fits one 160-character SMS; a test checks every care text for every plant.
+- **Email** is not sent: texts reach every customer, and email needs a mail provider. Left for later.
+- **Care texts**: when an order is marked delivered, three texts are scheduled for 10 am Dhaka time
+  on days 2 (settling in: shade first for outdoor trees, light for indoor plants), 14 (watering, from
+  the plant's water need, with a link to the guides) and 25 (the 30-day guarantee ends in 5 days).
+  Each talks about the dearest plant in the order and is written when sent. A job every 5 minutes
+  queues what is due, only between 9 am and 8 pm, and drops reminders more than two days late (the
+  app was down). Shoppers can untick them at checkout or switch them off on the order page (guests
+  with the order link, or signed in).
+- **Reviews**: only a customer with a delivered order holding the plant can review it, once (they can
+  change or delete it). 1–5 stars, an optional headline, words (10–2,000 characters) and up to
+  3 photos (JPEG, PNG or WebP, up to 5 MB, checked by their bytes). Reviews show at once, with the
+  first name and last initial, "Verified buyer", the size and planter bought, and the date. Staff can
+  hide a review or reply under it (Admin → Reviews, with tabs for no reply yet, 1–2 stars, photos
+  and hidden). Products keep their average and count, shown on cards, the product page (sorted by
+  newest, photos, highest or lowest) and in structured data. Account → Reviews lists delivered plants
+  waiting for a review. Photo files stay on disk when a photo or review is deleted.
+- **Guides** (`frontend/src/config/guides.ts`): six planting and care guides at `/guides`, each with
+  plants for it; plant pages link to the guide for their category. **Information pages**
+  (`frontend/src/config/pages.ts`): our story, delivery (live fees), guarantee, contact, bulk orders,
+  privacy and terms. Both are drafts: the owner must check every promise, and a lawyer should read
+  Terms and Privacy before launch.
+- **Search engines**: `NEXT_PUBLIC_SITE_URL` sets the public address for canonical links, the
+  sitemap (home, shop, categories, collections, plants, guides, information pages; refreshed hourly;
+  a new review updates a plant's date), robots rules (private and per-person pages are excluded),
+  a default sharing picture and a favicon, and structured data (Store, WebSite search, Product with
+  offers, ratings and reviews, BreadcrumbList, Article for guides).
+- The first page of reviews is cached by the website for 60 seconds, so a new review can take up to
+  a minute to appear for other visitors (the writer sees it at once).

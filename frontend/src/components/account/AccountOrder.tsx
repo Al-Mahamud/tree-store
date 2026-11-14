@@ -39,7 +39,7 @@ export function AccountOrder({ number }: { number: string }) {
           ) : (
             <div className="rounded-[2rem] bg-white/60 p-6 md:p-8"><StatusTimeline order={order} /></div>
           )}
-          <OrderDetails order={order} />
+          <OrderDetails order={order} care={{}} />
         </>
       )}
     </div>

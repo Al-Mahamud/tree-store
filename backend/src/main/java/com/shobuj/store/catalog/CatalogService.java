@@ -108,14 +108,14 @@ public class CatalogService {
 
     private record ProductRow(long id, String slug, String name, String localName, String botanicalName,
                               long categoryId, String description, String details, CareFacts care,
-                              Instant createdAt) {
+                              Instant createdAt, Double rating, int reviewCount) {
     }
 
     public ProductDetail product(String slug) {
         ProductRow p = jdbc.sql("""
                         select id, slug, name, local_name, botanical_name, category_id, description, details,
                                light, water, care_level, placement, pet_friendly, mature_height, growth_rate,
-                               fruiting, created_at
+                               fruiting, created_at, rating, review_count
                           from products where slug = :slug and status = 'ACTIVE'
                         """)
                 .param("slug", slug)
@@ -123,7 +123,8 @@ public class CatalogService {
                         rs.getString(5), rs.getLong(6), rs.getString(7), rs.getString(8),
                         new CareFacts(rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12),
                                 rs.getBoolean(13), rs.getString(14), rs.getString(15), rs.getString(16)),
-                        rs.getTimestamp(17).toInstant()))
+                        rs.getTimestamp(17).toInstant(),
+                        rs.getBigDecimal(18) == null ? null : rs.getBigDecimal(18).doubleValue(), rs.getInt(19)))
                 .optional()
                 .orElseThrow(() -> ApiException.notFound("product"));
 
@@ -168,7 +169,7 @@ public class CatalogService {
                 .toList();
         return new ProductDetail(p.id(), p.slug(), p.name(), p.localName(), p.botanicalName(),
                 breadcrumb(p.categoryId()), p.description(), details, p.care(),
-                p.createdAt().isAfter(Instant.now().minus(ProductSearch.NEW_FOR)), planters);
+                p.createdAt().isAfter(Instant.now().minus(ProductSearch.NEW_FOR)), planters, p.rating(), p.reviewCount());
     }
 
     private List<CategoryRef> breadcrumb(long categoryId) {
@@ -198,6 +199,28 @@ public class CatalogService {
                 params,
                 "(p.category_id = (select category_id from products where slug = :slug)) desc, p.sold_count desc, p.id",
                 limit);
+    }
+
+    public record SitemapEntry(String slug, Instant updatedAt) {
+    }
+
+    public record Sitemap(List<String> categories, List<String> collections, List<SitemapEntry> products) {
+    }
+
+    public Sitemap sitemap() {
+        List<String> categories = jdbc.sql("""
+                        select slug from categories c
+                         where exists (select 1 from products p where p.status = 'ACTIVE'
+                                        and (p.category_id = c.id or p.category_id in (select id from categories where parent_id = c.id)))
+                         order by parent_id nulls first, position""")
+                .query(String.class).list();
+        List<String> collections = jdbc.sql("select slug from collections where active order by position").query(String.class).list();
+        // A new review changes the page too.
+        List<SitemapEntry> products = jdbc.sql("""
+                        select p.slug, greatest(p.updated_at, (select max(updated_at) from reviews r where r.product_id = p.id))
+                          from products p where p.status = 'ACTIVE' order by p.id""")
+                .query((rs, n) -> new SitemapEntry(rs.getString(1), rs.getTimestamp(2).toInstant())).list();
+        return new Sitemap(categories, collections, products);
     }
 
     public Home home() {

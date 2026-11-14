@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BadgePercent, Boxes, ExternalLink, FolderTree, LayoutDashboard, Layers, LogOut, Menu, MessageSquareText, ShoppingBag, Sprout, Truck, Users, X } from "lucide-react";
+import { BadgePercent, Boxes, ExternalLink, FolderTree, Layers, LayoutDashboard, LogOut, Menu, MessageSquareText, ShoppingBag, Sprout, Star, Truck, Users, X } from "lucide-react";
 import { request } from "@/lib/client";
 import { site } from "@/config/site";
 import type { Staff } from "@/lib/admin-types";
@@ -24,6 +24,7 @@ const nav = [
   { href: "/admin/stock", label: "Stock", icon: Boxes },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
   { href: "/admin/collections", label: "Collections", icon: Layers },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/coupons", label: "Coupons", icon: BadgePercent },
   { href: "/admin/delivery", label: "Delivery", icon: Truck },
   { href: "/admin/texts", label: "Text messages", icon: MessageSquareText },

@@ -1,5 +1,6 @@
 package com.shobuj.store.admin;
 
+import com.shobuj.store.shared.Pictures;
 import com.shobuj.store.shared.ApiException;
 import com.shobuj.store.shared.StoreProperties;
 import java.text.Normalizer;

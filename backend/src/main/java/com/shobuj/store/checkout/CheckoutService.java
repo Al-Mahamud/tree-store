@@ -43,9 +43,11 @@ public class CheckoutService {
     private final DeliveryFees fees;
     private final Clock clock;
     private final com.shobuj.store.payment.PaymentService payments;
+    private final com.shobuj.store.notify.OrderTexts texts;
 
     CheckoutService(JdbcClient jdbc, CartService carts, Coupons coupons, DeliveryFees fees, Clock clock,
-                    com.shobuj.store.payment.PaymentService payments) {
+                    com.shobuj.store.payment.PaymentService payments, com.shobuj.store.notify.OrderTexts texts) {
+        this.texts = texts;
         this.payments = payments;
         this.jdbc = jdbc;
         this.carts = carts;
@@ -171,6 +173,9 @@ public class CheckoutService {
                 .param("n", method == PaymentMethod.COD ? "Order placed, cash on delivery" : "Waiting for payment")
                 .update();
         jdbc.sql("delete from carts where id = :id").param("id", cartId).update();
+        if (status.equals("PLACED")) {
+            texts.placed(orderId);
+        }
         return new Placed(orderId, orderNumber, token, quote.total(), method);
     }
 

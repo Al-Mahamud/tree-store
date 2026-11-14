@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CareTexts } from "./CareTexts";
 import { Check } from "lucide-react";
 import type { OrderView } from "@/lib/types";
 import { taka } from "@/lib/money";
@@ -35,7 +36,8 @@ export function StatusTimeline({ order }: { order: OrderView }) {
 }
 
 /* eslint-disable @next/next/no-img-element */
-export function OrderDetails({ order }: { order: OrderView }) {
+/** `care`: show the care-texts switch (with the order's token for guests; empty for the signed-in owner). */
+export function OrderDetails({ order, care }: { order: OrderView; care?: { token?: string } }) {
   return (
     <div className="grid gap-6 md:grid-cols-5">
       <div className="rounded-[2rem] bg-white/50 p-5 md:col-span-3 md:p-7">
@@ -72,6 +74,7 @@ export function OrderDetails({ order }: { order: OrderView }) {
           <h2 className="font-display text-2xl">Payment</h2>
           <p className="mt-3">{order.paymentStatus === "PAID" ? (order.status === "CANCELLED" ? "Paid online — refund on its way" : order.paymentMethod === "COD" ? "Paid in cash" : "Paid online") : order.paymentStatus === "REFUNDED" ? "Refunded" : order.paymentMethod === "COD" ? (order.status === "CANCELLED" ? "Nothing to pay" : `Cash on delivery — please keep ${taka(order.total)} ready.`) : order.status === "CANCELLED" ? "Not paid" : "Online, waiting for payment"}</p>
         </div>
+        {care && <CareTexts order={order} token={care.token} />}
       </div>
     </div>
   );

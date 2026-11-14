@@ -45,8 +45,11 @@ public class PaymentService {
     private final TransactionTemplate tx;
     private final StoreProperties.Payment settings;
     private final Clock clock;
+    private final com.shobuj.store.notify.OrderTexts texts;
 
-    PaymentService(JdbcClient jdbc, SslCommerzClient gateway, OrderStock stock, TransactionTemplate tx, StoreProperties properties, Clock clock) {
+    PaymentService(JdbcClient jdbc, SslCommerzClient gateway, OrderStock stock, TransactionTemplate tx, StoreProperties properties,
+                   Clock clock, com.shobuj.store.notify.OrderTexts texts) {
+        this.texts = texts;
         this.jdbc = jdbc;
         this.gateway = gateway;
         this.stock = stock;
@@ -171,6 +174,7 @@ public class PaymentService {
                                      where id = :id""")
                             .param("id", order.id()).update();
                     event(order.id(), "PLACED", "Paid ৳" + attempt.amount() + " by " + how);
+                    texts.placed(order.id());
                 }
                 case "CANCELLED" -> {
                     jdbc.sql("update orders set payment_status = 'PAID', paid_at = now(), updated_at = now() where id = :id")
@@ -178,6 +182,7 @@ public class PaymentService {
                     event(order.id(), "CANCELLED", "Payment of ৳" + attempt.amount() + " arrived after the order was "
                             + "cancelled. Refund it.");
                     log.error("Order {} was paid after it was cancelled: refund {}", order.number(), tranId);
+                    texts.cancelled(order.id(), "STAFF");
                 }
                 default -> {
                     // Switched to cash on delivery, then paid anyway: the rider collects nothing.
@@ -213,6 +218,7 @@ public class PaymentService {
                              where id = :id""")
                     .param("id", orderId).update();
             event(orderId, "PLACED", "Changed to cash on delivery");
+            texts.placed(orderId);
         });
     }
 
@@ -269,6 +275,7 @@ public class PaymentService {
                     .param("o", orderId).update();
             stock.release(orderId);
             event(orderId, "CANCELLED", "Not paid in time");
+            texts.cancelled(orderId, "EXPIRED");
         });
     }
 

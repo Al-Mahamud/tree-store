@@ -1,5 +1,6 @@
 package com.shobuj.store.admin;
 
+import com.shobuj.store.shared.Pictures;
 import com.shobuj.store.shared.ApiException;
 import java.sql.Timestamp;
 import java.time.Instant;

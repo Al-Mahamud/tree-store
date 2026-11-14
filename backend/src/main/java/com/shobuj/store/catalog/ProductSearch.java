@@ -75,7 +75,7 @@ public class ProductSearch {
                                left join planters pl on pl.id = pi.planter_id
                               where pi.product_id = p.id
                               order by pl.position nulls last, pi.position, pi.id limit 2) as images,
-                       p.light, p.care_level, p.pet_friendly, p.fruiting, p.created_at,
+                       p.light, p.care_level, p.pet_friendly, p.fruiting, p.created_at, p.rating, p.review_count,
                        exists (select 1 from variants v where v.product_id = p.id and v.stock > 0) as in_stock
                   from %s
                   join categories c on c.id = p.category_id
@@ -99,7 +99,9 @@ public class ProductSearch {
                 rs.getString("light"), rs.getString("care_level"), rs.getBoolean("pet_friendly"),
                 rs.getString("fruiting"),
                 rs.getTimestamp("created_at").toInstant().isAfter(newSince),
-                !rs.getBoolean("in_stock"));
+                !rs.getBoolean("in_stock"),
+                rs.getBigDecimal("rating") == null ? null : rs.getBigDecimal("rating").doubleValue(),
+                rs.getInt("review_count"));
     }
 
     private static String[] strings(Array array) throws SQLException {

@@ -121,3 +121,24 @@ export type StaffRow = { id: number; name: string; phone: string; active: boolea
 export type CategoryAdmin = { id: number; parentId: number | null; name: string; slug: string; description: string | null; image: string | null; position: number; products: number; children: CategoryAdmin[] };
 
 export type CollectionAdmin = { id: number; name: string; slug: string; tagline: string | null; description: string | null; image: string | null; active: boolean; position: number; products: number };
+
+export type AdminReview = {
+  id: number;
+  slug: string;
+  product: string;
+  image: string | null;
+  rating: number;
+  title: string | null;
+  body: string;
+  author: string;
+  phone: string;
+  bought: string | null;
+  orderNumber: string | null;
+  photos: { id: number; url: string }[];
+  status: "PUBLISHED" | "HIDDEN";
+  reply: string | null;
+  repliedAt: string | null;
+  repliedBy: string | null;
+  createdAt: string;
+};
+export type AdminReviewPage = { items: AdminReview[]; page: number; pageSize: number; total: number; counts: Record<string, number> };

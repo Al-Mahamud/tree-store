@@ -1,7 +1,5 @@
-package com.shobuj.store.admin;
+package com.shobuj.store.shared;
 
-import com.shobuj.store.shared.ApiException;
-import com.shobuj.store.shared.StoreProperties;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -11,18 +9,18 @@ import org.springframework.stereotype.Component;
 
 /** Stores uploaded pictures under the storage folder and returns their /media address. */
 @Component
-class Pictures {
+public class Pictures {
 
-    static final long MAX_BYTES = 5 * 1024 * 1024;
+    public static final long MAX_BYTES = 5 * 1024 * 1024;
 
     private final StoreProperties properties;
 
-    Pictures(StoreProperties properties) {
+    public Pictures(StoreProperties properties) {
         this.properties = properties;
     }
 
     /** Keeps a JPEG, PNG or WebP picture (checked by its bytes, not its name) in {@code folder}. */
-    String store(String folder, byte[] bytes) {
+    public String store(String folder, byte[] bytes) {
         if (bytes.length > MAX_BYTES) {
             throw ApiException.badRequest("image.size", "Pictures can be up to 5 MB.");
         }

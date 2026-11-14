@@ -32,6 +32,7 @@ export function CheckoutForm() {
   const [saved, setSaved] = useState<SavedAddress[]>([]);
   const [chosen, setChosen] = useState<number | "new">("new");
   const [saveAddress, setSaveAddress] = useState(true);
+  const [careTexts, setCareTexts] = useState(true);
   const [payOptions, setPayOptions] = useState<PaymentOptions | null>(null);
   useEffect(() => {
     request<PaymentOptions>("GET", "/payments/options").then(setPayOptions).catch(() => setPayOptions(null));
@@ -117,6 +118,7 @@ export function CheckoutForm() {
       const placed = await request<{ number: string; token: string; paymentUrl: string | null }>("POST", "/checkout", {
         ...form,
         saveAddress: Boolean(me) && chosen === "new" && saveAddress,
+        careTexts,
       });
       try {
         const { name, phone, email, address, area, city, zone } = form;
@@ -228,6 +230,10 @@ export function CheckoutForm() {
             {form.paymentMethod === "ONLINE" && payOptions && (
               <p className="rounded-2xl bg-mist px-4 py-3 text-xs text-ink-soft">After you place the order you&rsquo;ll pay on SSLCommerz. Your plants are set aside for {payOptions.holdMinutes} minutes; if the payment doesn&rsquo;t go through you can try again or switch to cash.</p>
             )}
+            <label className="mt-2 flex items-start gap-3 rounded-[1.25rem] bg-mist p-4 text-sm">
+              <input type="checkbox" checked={careTexts} onChange={(e) => setCareTexts(e.target.checked)} className="mt-0.5 h-4 w-4 accent-forest" />
+              <span><span className="font-semibold">Text me care tips after delivery</span><span className="block text-xs text-muted">Three short texts in the first month. Turn them off any time on your order page.</span></span>
+            </label>
           </div>
         </Step>
       </div>

@@ -1,11 +1,13 @@
 package com.shobuj.store.admin;
 
+import com.shobuj.store.shared.Pictures;
 import com.shobuj.store.admin.AdminCatalog.ProductInput;
 import com.shobuj.store.admin.AdminSettings.CollectionInput;
 import com.shobuj.store.admin.AdminSettings.CouponInput;
 import com.shobuj.store.checkout.DeliveryFees;
 import com.shobuj.store.shared.ApiException;
 import com.shobuj.store.shared.BangladeshPhone;
+import com.shobuj.store.review.ReviewService;
 import com.shobuj.store.shared.CurrentStaff;
 import com.shobuj.store.shared.LoginSessions;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,6 +79,10 @@ class AdminController {
     record Move(int direction) {
     }
 
+    /** Either may be left out: {@code status} PUBLISHED or HIDDEN; an empty {@code reply} removes it. */
+    record ReviewChange(String status, String reply) {
+    }
+
     private final AdminOrders orders;
     private final AdminCatalog catalog;
     private final AdminSettings settings;
@@ -84,9 +90,11 @@ class AdminController {
     private final DeliveryFees fees;
     private final StaffService staff;
     private final LoginSessions sessions;
+    private final ReviewService reviews;
 
     AdminController(AdminOrders orders, AdminCatalog catalog, AdminSettings settings, AdminCategories categories,
-                    DeliveryFees fees, StaffService staff, LoginSessions sessions) {
+                    DeliveryFees fees, StaffService staff, LoginSessions sessions, ReviewService reviews) {
+        this.reviews = reviews;
         this.orders = orders;
         this.catalog = catalog;
         this.settings = settings;
@@ -297,6 +305,19 @@ class AdminController {
         if (value == null || value < 0 || value > max) {
             errors.put(field, "Enter an amount from ৳0 to ৳" + String.format("%,d", max) + ".");
         }
+    }
+
+    // Reviews
+
+    @GetMapping("/reviews")
+    ReviewService.AdminPage reviews(@RequestParam(required = false) String filter, @RequestParam(required = false) String q,
+                                    @RequestParam(defaultValue = "0") int page) {
+        return reviews.adminList(filter, q, page);
+    }
+
+    @PatchMapping("/reviews/{id}")
+    void changeReview(@PathVariable long id, @RequestBody ReviewChange body) {
+        reviews.moderate(id, body.status(), body.reply(), actor());
     }
 
     // Texts

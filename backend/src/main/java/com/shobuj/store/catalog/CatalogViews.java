@@ -28,7 +28,10 @@ public final class CatalogViews {
             boolean petFriendly,
             String fruiting,
             boolean isNew,
-            boolean soldOut) {
+            boolean soldOut,
+            /* Average of published reviews (null without any), and how many there are. */
+            Double rating,
+            int reviewCount) {
     }
 
     public record CategoryNode(long id, String name, String slug, String description, String image, int productCount,
@@ -77,7 +80,9 @@ public final class CatalogViews {
             List<String> details,
             CareFacts care,
             boolean isNew,
-            List<PlanterOption> planters) {
+            List<PlanterOption> planters,
+            Double rating,
+            int reviewCount) {
     }
 
     public record CollectionView(long id, String name, String slug, String tagline, String description, String image,

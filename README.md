@@ -40,7 +40,8 @@ npm run dev       # http://localhost:3000
 ```
 
 Demo account: mobile `01755555555`, password `shobuj-demo` (Nadia, with a saved address, two past
-orders and three saved plants). Sign-up codes in local runs appear at
+orders and three saved plants). She has reviewed her mango; her other delivered plants wait under
+Account → Reviews. Sign-up codes, order texts and care texts in local runs appear at
 http://localhost:8080/api/v1/test-texts (texts are only logged).
 
 Admin area: http://localhost:3000/admin, mobile `01999999999`, password `shobuj-admin-1` (Farhana,
@@ -50,3 +51,11 @@ there is none; add the rest of the team under Team.
 
 Online payment in local runs goes to a fake SSLCommerz page (test sources only, no real money).
 For the real sandbox, set `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD` and a public `WEB_URL`.
+
+Texts: `SMS_DRIVER=log` (default) only logs them; `SMS_DRIVER=sslwireless` with
+`SSLWIRELESS_API_TOKEN` and `SSLWIRELESS_SID` sends them for real.
+
+Search engines: set `NEXT_PUBLIC_SITE_URL` to the shop's public address (used in canonical links,
+the sitemap at `/sitemap.xml`, `/robots.txt` and shared-link pictures). Planting guides live in
+`frontend/src/config/guides.ts` and the footer's information pages in `frontend/src/config/pages.ts`;
+both are drafts to check before launch.

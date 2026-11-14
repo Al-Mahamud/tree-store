@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, LogOut, MapPin, Package, UserRound } from "lucide-react";
+import { Heart, LogOut, MapPin, Package, Star, UserRound } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { firstName, useAccount } from "./AccountProvider";
 
 const tabs = [
   { href: "/account", label: "Orders", icon: Package },
   { href: "/account/wishlist", label: "Wishlist", icon: Heart },
+  { href: "/account/reviews", label: "Reviews", icon: Star },
   { href: "/account/addresses", label: "Addresses", icon: MapPin },
   { href: "/account/profile", label: "Profile", icon: UserRound },
 ];

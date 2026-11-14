@@ -1,6 +1,6 @@
 import "server-only";
 import { notFound } from "next/navigation";
-import type { CategoryNode, Collection, DeliveryFees, Home, OrderView, ProductCard, ProductDetail, ProductPage } from "./types";
+import type { CategoryNode, Collection, DeliveryFees, Home, OrderView, ProductCard, ProductDetail, ProductPage, ReviewPage, Sitemap } from "./types";
 
 const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -22,6 +22,9 @@ export const api = {
   product: (slug: string) => get<ProductDetail>(`/products/${encodeURIComponent(slug)}`),
   delivery: () => get<DeliveryFees>("/delivery", 60),
   related: (slug: string) => get<ProductCard[]>(`/products/${encodeURIComponent(slug)}/related`),
+  /** The first page of reviews, rendered with the product page (for shoppers and search engines). */
+  reviews: (slug: string) => get<ReviewPage>(`/products/${encodeURIComponent(slug)}/reviews`, 60),
+  sitemap: () => get<Sitemap>("/sitemap", 3600),
   /** Never cached: order status changes. */
   order: async (number: string, token: string): Promise<OrderView> => {
     const response = await fetch(

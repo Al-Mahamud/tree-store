@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MapPin, PawPrint, Ruler, ShieldCheck, Sprout, TrendingUp, Apple, Home as HomeIcon, Truck } from "lucide-react";
+import { ArrowUpRight, MapPin, PawPrint, Ruler, ShieldCheck, Sprout, TrendingUp, Apple, Home as HomeIcon, Truck } from "lucide-react";
 import type { ProductDetail } from "@/lib/types";
 import { careLabels, growthLabels, lightLabels, placementLabels, waterLabels } from "@/lib/care";
 import { site } from "@/config/site";
@@ -13,6 +13,8 @@ import { CareLevelIcon, LightIcon, WaterIcon } from "@/components/ui/CareIcon";
 import { Gallery } from "./Gallery";
 import { AddToBag } from "./AddToBag";
 import { SaveButton } from "@/components/account/SaveButton";
+import { Stars } from "@/components/ui/Stars";
+import { guideFor } from "@/config/guides";
 
 const LOW_STOCK = 3;
 
@@ -24,6 +26,7 @@ export function ProductView({ product, initialPlanter }: { product: ProductDetai
   const firstInStock = planter?.options.find((o) => o.stock > 0) ?? planter?.options[0];
   const [size, setSize] = useState(firstInStock?.size ?? null);
   const option = planter?.options.find((o) => o.size === size) ?? null;
+  const guide = guideFor(product.breadcrumb.map((c) => c.slug));
 
   const choosePlanter = (id: number) => {
     setPlanterId(id);
@@ -66,6 +69,13 @@ export function ProductView({ product, initialPlanter }: { product: ProductDetai
         </div>
         <h1 className="mt-4 font-display text-5xl leading-[0.95] md:text-6xl">{product.name}</h1>
         {product.botanicalName && <p className="mt-2 font-display text-xl italic text-muted">{product.botanicalName}</p>}
+        {product.rating !== null && product.reviewCount > 0 && (
+          <a href="#reviews" className="group mt-3 inline-flex items-center gap-2 text-sm">
+            <Stars value={product.rating} />
+            <span className="font-semibold">{product.rating.toFixed(1)}</span>
+            <span className="text-muted underline-offset-4 group-hover:underline">{product.reviewCount} {product.reviewCount === 1 ? "review" : "reviews"}</span>
+          </a>
+        )}
         <div className="mt-5">
           {option ? <Price price={option.price} compareAt={option.compareAtPrice} size="lg" /> : null}
         </div>
@@ -147,6 +157,15 @@ export function ProductView({ product, initialPlanter }: { product: ProductDetai
               <ul className="space-y-2">
                 {product.details.map((d) => <li key={d} className="flex gap-2"><Sprout size={15} className="mt-0.5 shrink-0 text-moss" />{d}</li>)}
               </ul>
+            </Accordion>
+          )}
+          {guide && (
+            <Accordion title="Planting & care">
+              <p>{guide.summary}</p>
+              <Link href={`/guides/${guide.slug}`} className="mt-3 inline-flex items-center gap-1 font-semibold text-forest hover:underline">
+                Read &ldquo;{guide.title}&rdquo; <ArrowUpRight size={15} />
+              </Link>
+              <p className="mt-3 text-xs text-muted">After delivery we also text a few care tips (you can turn them off).</p>
             </Accordion>
           )}
           <Accordion title="Delivery & guarantee">

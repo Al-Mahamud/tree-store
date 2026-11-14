@@ -15,8 +15,13 @@ const instrument = Instrument_Serif({
 const bengali = Noto_Sans_Bengali({ subsets: ["bengali"], variable: "--font-bengali", display: "swap", weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: { default: `${site.name} — ${site.tagline}`, template: `%s · ${site.name}` },
   description: site.description,
+  applicationName: site.name,
+  alternates: { canonical: "/" },
+  openGraph: { siteName: site.name, locale: "en_BD", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = { themeColor: "#f4f2ec" };

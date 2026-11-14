@@ -257,6 +257,57 @@ public class DemoData {
             new Object[] {12, "amrapali-mango", "SMALL", 2, "snake-plant", "SMALL", 1},
             new Object[] {40, "money-plant", "MEDIUM", 1, "neem", "SMALL", 1});
 
+    /**
+     * Reviews from other shoppers: plant slug, reviewer, rating, headline, words, what they bought,
+     * days ago, whether a photo goes with it, and the nursery's reply (or null).
+     */
+    static final List<Object[]> REVIEWS = List.of(
+            new Object[] {"amrapali-mango", "Shakil Ahmed", 5, "Fruited in the second summer",
+                    "Planted it in a half drum on our Mirpur rooftop. It flowered last February and we had eleven mangoes in June. Sweet and no fibre at all.",
+                    "Medium · Clay pot", 60, true, "Eleven in year two is wonderful. Thank you for sharing the photo!"},
+            new Object[] {"amrapali-mango", "Rumana Islam", 5, "Healthy and well packed",
+                    "Arrived with the soil still moist and not a single broken branch. New leaves within ten days.",
+                    "Small · Grow bag", 21, false, null},
+            new Object[] {"amrapali-mango", "Habibur Rahman", 4, null,
+                    "Good sapling, exactly the height described. One star off because delivery to Gazipur took three days.",
+                    "Medium · Grow bag", 35, false, "Sorry about the wait. Gazipur now goes out on our own van on Tuesdays and Fridays."},
+            new Object[] {"amrapali-mango", "Farzana Haque", 5, "Best gift for my father",
+                    "Bought the large one in a clay pot for my father's retirement. He checks on it every morning.",
+                    "Large · Clay pot", 90, true, null},
+            new Object[] {"kagzi-lemon", "Imran Kabir", 5, "Lemons within a year",
+                    "Small plant but it already had buds. Six months later we pick lemons every week. The smell of the leaves is lovely.",
+                    "Small · Clay pot", 200, true, null},
+            new Object[] {"kagzi-lemon", "Sadia Noor", 4, null,
+                    "Lost a few leaves in the first week, then settled in. Now growing fast on the balcony.",
+                    "Small · Grow bag", 45, false, null},
+            new Object[] {"thai-guava", "Mahfuz Alam", 5, "Tough tree",
+                    "Survived a cyclone on the roof without complaint. Fruit is big and crunchy.",
+                    "Medium · Grow bag", 120, false, null},
+            new Object[] {"snake-plant", "Tasnim Chowdhury", 5, "Impossible to kill",
+                    "In a dark corner of my office with AC all day and it still puts out new leaves. The white pot is good quality too.",
+                    "Medium · White ceramic", 30, true, null},
+            new Object[] {"snake-plant", "Ayesha Siddiqua", 4, null,
+                    "Lovely plant. The pot was slightly smaller than I imagined but fine for a desk.",
+                    "Small · Forest ceramic", 14, false, "Thanks Ayesha. The small pot is 12 cm across; we've added that to the description."},
+            new Object[] {"monstera-deliciosa", "Nabila Karim", 5, "Big split leaves already",
+                    "Arrived with four leaves, two of them split. It fills the corner of our living room. Packed very carefully.",
+                    "Medium · Forest ceramic", 40, true, null},
+            new Object[] {"monstera-deliciosa", "Rashed Khan", 3, "Leaf yellowed",
+                    "One leaf turned yellow in the first week. Support told me it was the move and to water less, and they were right, it's fine now.",
+                    "Small · White ceramic", 25, false, "Glad it recovered. A yellow leaf or two after travelling is normal: the guarantee covers anything more."},
+            new Object[] {"money-plant", "Jannatul Ferdous", 5, null,
+                    "Trailing nicely down my bookshelf. Easy and cheerful.",
+                    "Medium · Clay pot", 50, false, null},
+            new Object[] {"krishnachura", "Tanvir Hossain", 5, "Planted for my daughter",
+                    "Planted it in our village home when my daughter was born. Strong and straight, already taller than me.",
+                    "Large · Grow bag", 150, false, null},
+            new Object[] {"ficus-bonsai", "Sabrina Akter", 4, "Beautiful shape",
+                    "Lovely trunk and the tray is beautiful. Needs more light than I expected, moved it to the window.",
+                    "Small · Slate tray", 70, true, null},
+            new Object[] {"neem", "Abdul Mannan", 2, "Slow to start",
+                    "Lost most of its leaves after planting. It is coming back now but I expected better.",
+                    "Small · Grow bag", 80, false, "Neem often drops leaves when moved and comes back strongly. Please send us a photo if it doesn't."});
+
     static final List<String> DEMO_WISHLIST = List.of("monstera-deliciosa", "ficus-bonsai", "krishnachura");
 
     @Bean
@@ -339,9 +390,14 @@ public class DemoData {
                          order by p.featured desc, p.sold_count desc, pl.position, pi.position limit 1)
                     """).update();
             demoCustomer(now);
+            demoReviews(now);
             jdbc.sql("insert into staff (name, phone, password_hash) values ('Farhana (nursery manager)', :p, :h)")
                     .param("p", STAFF_PHONE).param("h", passwords.encode(STAFF_PASSWORD)).update();
             demoQueue(now);
+            jdbc.sql("""
+                    update orders o set delivered_at = (select max(created_at) from order_events e
+                                                         where e.order_id = o.id and e.status = 'DELIVERED')
+                     where status = 'DELIVERED' and delivered_at is null""").update();
         }
 
         /**
@@ -417,6 +473,59 @@ public class DemoData {
                             .param("at", Timestamp.from(placed.plus(Duration.ofHours(step * 2L)))).update();
                 }
             }
+        }
+
+        private void demoReviews(Instant now) {
+            String hash = passwords.encode("demo-reviewer-" + now.toEpochMilli());
+            int n = 0;
+            for (Object[] r : REVIEWS) {
+                n++;
+                String phone = "0171300" + String.format("%04d", n);
+                long customer = jdbc.sql("""
+                                insert into customers (name, phone, password_hash, phone_verified_at) values (:n, :p, :h, now())
+                                returning id""")
+                        .param("n", r[1]).param("p", phone).param("h", hash).query(Long.class).single();
+                String name = (String) r[1];
+                String author = name.substring(0, name.indexOf(' ')) + " " + name.charAt(name.lastIndexOf(' ') + 1) + ".";
+                Timestamp at = Timestamp.from(now.minus(Duration.ofDays((Integer) r[6])));
+                long review = jdbc.sql("""
+                                insert into reviews (product_id, customer_id, rating, title, body, author, bought, reply,
+                                                     replied_at, replied_by, created_at, updated_at)
+                                select id, :c, :rating, :title, :body, :author, :bought, :reply, :repliedAt, :repliedBy, :at, :at
+                                  from products where slug = :slug
+                                returning id""")
+                        .param("c", customer).param("rating", r[2]).param("title", r[3]).param("body", r[4])
+                        .param("author", author).param("bought", r[5]).param("reply", r[8]).param("at", at)
+                        .param("repliedAt", r[8] == null ? null : Timestamp.from(at.toInstant().plus(Duration.ofDays(1))))
+                        .param("repliedBy", r[8] == null ? null : "Farhana (nursery manager)")
+                        .param("slug", r[0]).query(Long.class).single();
+                if ((Boolean) r[7]) {
+                    // A demo "photo": the plant's own picture in the planter that was bought.
+                    jdbc.sql("""
+                                    insert into review_photos (review_id, url)
+                                    select :r, pi.url from product_images pi join products p on p.id = pi.product_id
+                                      left join planters pl on pl.id = pi.planter_id
+                                     where p.slug = :slug
+                                     order by (pl.name = :planter) desc nulls last, pi.position limit 1""")
+                            .param("r", review).param("slug", r[0])
+                            .param("planter", ((String) r[5]).substring(((String) r[5]).indexOf("· ") + 2)).update();
+                }
+            }
+            // Nadia reviewed her mango; her other delivered plants wait for a review.
+            jdbc.sql("""
+                            insert into reviews (product_id, customer_id, order_id, rating, title, body, author, bought, created_at, updated_at)
+                            select p.id, c.id, (select o.id from orders o join order_items i on i.order_id = o.id
+                                                 where o.customer_id = c.id and i.product_id = p.id limit 1),
+                                   5, 'Our rooftop favourite',
+                                   'Two new flushes of leaves since it arrived and it handled the heat wave well. Already planning a second one.',
+                                   'Nadia R.', 'Small · Grow bag', now() - interval '5 days', now() - interval '5 days'
+                              from products p, customers c where p.slug = 'amrapali-mango' and c.phone = :phone""")
+                    .param("phone", DEMO_PHONE).update();
+            jdbc.sql("""
+                    update products p set review_count = s.n, rating = s.avg
+                      from (select product_id, count(*) as n, round(avg(rating)::numeric, 1) as avg
+                              from reviews where status = 'PUBLISHED' group by product_id) s
+                     where s.product_id = p.id""").update();
         }
 
         /** A customer with a saved address, two delivered orders and saved plants. */

@@ -25,7 +25,8 @@ public class OrderService {
                             Instant placedAt, String name, String phone, String email, String address, String area,
                             String city, String zone, String note, List<Item> items, int subtotal, int discount,
                             int shippingFee, int total, String couponCode, List<Event> events,
-                            Instant paymentExpiresAt, String courier, String trackingCode) {
+                            Instant paymentExpiresAt, String courier, String trackingCode, boolean careTexts,
+                            Instant deliveredAt) {
     }
 
     /** One line in a customer's order history. {@code itemCount} counts plants, {@code lineCount} options. */
@@ -152,7 +153,7 @@ public class OrderService {
         return jdbc.sql("""
                         select access_token, number, status, payment_method, payment_status, created_at, name, phone,
                                email, address, area, city, zone, note, subtotal, discount, shipping_fee, total, coupon_code,
-                               payment_expires_at, courier, tracking_code
+                               payment_expires_at, courier, tracking_code, care_texts, delivered_at
                           from orders where id = :id""")
                 .param("id", orderId)
                 .query((rs, n) -> new Row(orderId, rs.getString(1), new OrderView(rs.getString(2), rs.getString(3),
@@ -161,7 +162,8 @@ public class OrderService {
                         rs.getString(13), rs.getString(14), items, rs.getInt(15), rs.getInt(16), rs.getInt(17),
                         rs.getInt(18), rs.getString(19), events,
                         rs.getTimestamp(20) == null ? null : rs.getTimestamp(20).toInstant(), rs.getString(21),
-                        rs.getString(22))))
+                        rs.getString(22), rs.getBoolean(23),
+                        rs.getTimestamp(24) == null ? null : rs.getTimestamp(24).toInstant())))
                 .optional();
     }
 }

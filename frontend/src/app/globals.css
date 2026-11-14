@@ -16,6 +16,8 @@
   --color-clay: #b8643c;
   --color-sale: #b5482c;
   --color-ok: #2f6b45;
+  /* Review stars. */
+  --color-sun: #d9962b;
 
   --font-sans: var(--font-manrope), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-instrument), var(--font-bengali), ui-serif, Georgia, serif;

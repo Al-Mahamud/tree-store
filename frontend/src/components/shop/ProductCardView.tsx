@@ -5,6 +5,7 @@ import { careLabels, lightLabels } from "@/lib/care";
 import { percentOff } from "@/lib/money";
 import { Price } from "@/components/ui/Price";
 import { LightIcon } from "@/components/ui/CareIcon";
+import { RatingBadge } from "@/components/ui/Stars";
 import { SaveButton } from "@/components/account/SaveButton";
 
 /* eslint-disable @next/next/no-img-element -- plant images are served by the backend as-is. */
@@ -60,11 +61,16 @@ export function ProductCardView({ product, priority = false }: { product: Produc
           </div>
         </div>
       </Link>
-      {product.planters.length > 1 && (
-        <div className="mt-2 flex items-center gap-1.5 px-1" aria-label={`${product.planters.length} planters`}>
-          {product.planters.map((p) => (
-            <span key={p.name} title={p.name} className="h-3.5 w-3.5 rounded-full ring-1 ring-black/10" style={{ backgroundColor: p.hex }} />
-          ))}
+      {(product.planters.length > 1 || product.reviewCount > 0) && (
+        <div className="mt-2 flex items-center justify-between gap-3 px-1">
+          {product.planters.length > 1 ? (
+            <div className="flex items-center gap-1.5" aria-label={`${product.planters.length} planters`}>
+              {product.planters.map((p) => (
+                <span key={p.name} title={p.name} className="h-3.5 w-3.5 rounded-full ring-1 ring-black/10" style={{ backgroundColor: p.hex }} />
+              ))}
+            </div>
+          ) : <span />}
+          <RatingBadge rating={product.rating} count={product.reviewCount} />
         </div>
       )}
     </article>

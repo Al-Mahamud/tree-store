@@ -3,7 +3,11 @@ import { Listing } from "@/components/shop/Listing";
 import { first, type SearchParams } from "@/lib/listing";
 import { api } from "@/lib/api";
 
-export const metadata: Metadata = { title: "All plants" };
+export const metadata: Metadata = {
+  title: "All plants",
+  description: "Fruit trees, flowering trees, palms, indoor plants and bonsai, filtered by light, care and size.",
+  alternates: { canonical: "/shop" },
+};
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;

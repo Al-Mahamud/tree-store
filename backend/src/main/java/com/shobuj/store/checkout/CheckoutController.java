@@ -43,7 +43,9 @@ class CheckoutController {
             @Size(max = 500, message = "Notes can be up to 500 characters.") String note,
             @NotNull(message = "Please choose how to pay.") PaymentMethod paymentMethod,
             /* Signed-in customers: keep this address for next time. */
-            Boolean saveAddress) {
+            Boolean saveAddress,
+            /* Care texts after delivery; on unless this is false. */
+            Boolean careTexts) {
     }
 
     record Placed(String number, String token, int total, String paymentUrl) {
@@ -53,9 +55,11 @@ class CheckoutController {
     private final Bags bags;
     private final AddressService addresses;
     private final com.shobuj.store.payment.PaymentService payments;
+    private final com.shobuj.store.notify.CareTexts care;
 
     CheckoutController(CheckoutService checkout, Bags bags, AddressService addresses,
-                       com.shobuj.store.payment.PaymentService payments) {
+                       com.shobuj.store.payment.PaymentService payments, com.shobuj.store.notify.CareTexts care) {
+        this.care = care;
         this.payments = payments;
         this.checkout = checkout;
         this.bags = bags;
@@ -83,6 +87,9 @@ class CheckoutController {
         Customer customer = new Customer(body.name().trim(), phone, blankToNull(body.email()), body.address().trim(),
                 body.area().trim(), body.city().trim(), body.zone(), blankToNull(body.note()));
         CheckoutService.Placed placed = checkout.place(cart, customer, body.paymentMethod(), customerId.orElse(null));
+        if (Boolean.FALSE.equals(body.careTexts())) {
+            care.setOn(placed.orderId(), false);
+        }
         if (customerId.isPresent() && Boolean.TRUE.equals(body.saveAddress())) {
             addresses.rememberFromCheckout(customerId.get(), new AddressService.AddressInput("Home", customer.name(), phone,
                     customer.address(), customer.area(), customer.city(), customer.zone(), null));
