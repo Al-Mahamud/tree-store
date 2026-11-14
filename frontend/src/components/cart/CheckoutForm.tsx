@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banknote, CreditCard, Lock, MapPin } from "lucide-react";
+import { Banknote, Check, CreditCard, Lock, MapPin, Plus } from "lucide-react";
 import { ApiError, request } from "@/lib/client";
 import { taka } from "@/lib/money";
 import { site } from "@/config/site";
-import type { Quote, Zone } from "@/lib/types";
+import type { Quote, SavedAddress, Zone } from "@/lib/types";
+import { useAccount } from "@/components/account/AccountProvider";
+import { Field } from "@/components/ui/Field";
 import { useCart } from "./CartProvider";
 
 type Form = { name: string; phone: string; email: string; address: string; area: string; city: string; zone: Zone; note: string; paymentMethod: "COD" | "ONLINE" };
@@ -24,6 +26,38 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
+  const { me } = useAccount();
+  const [saved, setSaved] = useState<SavedAddress[]>([]);
+  const [chosen, setChosen] = useState<number | "new">("new");
+  const [saveAddress, setSaveAddress] = useState(true);
+
+  // Signed in: start from the default saved address, or at least the customer's name and number.
+  useEffect(() => {
+    if (!me) return;
+    request<SavedAddress[]>("GET", "/account/addresses")
+      .then((list) => {
+        setSaved(list);
+        const first = list.find((a) => a.isDefault) ?? list[0];
+        if (first) {
+          setChosen(first.id);
+          setForm((f) => ({ ...f, ...fromSaved(first), email: f.email || me.email || "" }));
+        } else {
+          setForm((f) => ({ ...f, name: f.name || me.name, phone: f.phone || me.phone, email: f.email || me.email || "" }));
+        }
+      })
+      .catch(() => setSaved([]));
+  }, [me]);
+
+  const choose = (a: SavedAddress | "new") => {
+    setErrors({});
+    if (a === "new") {
+      setChosen("new");
+      setForm((f) => ({ ...f, address: "", area: "", city: "Dhaka", zone: "DHAKA", note: "" }));
+    } else {
+      setChosen(a.id);
+      setForm((f) => ({ ...f, ...fromSaved(a) }));
+    }
+  };
 
   useEffect(() => {
     try {
@@ -74,7 +108,10 @@ export function CheckoutForm() {
     setFormError(null);
     setErrors({});
     try {
-      const placed = await request<{ number: string; token: string; paymentUrl: string | null }>("POST", "/checkout", form);
+      const placed = await request<{ number: string; token: string; paymentUrl: string | null }>("POST", "/checkout", {
+        ...form,
+        saveAddress: Boolean(me) && chosen === "new" && saveAddress,
+      });
       try {
         const { name, phone, email, address, area, city, zone } = form;
         localStorage.setItem(SAVED, JSON.stringify({ name, phone, email, address, area, city, zone }));
@@ -106,6 +143,11 @@ export function CheckoutForm() {
       <div className="space-y-6 lg:col-span-7">
         <h1 className="font-display text-5xl md:text-6xl">Checkout</h1>
         <Step n={1} title="Your details">
+          {me === null && (
+            <p className="mb-5 rounded-2xl bg-mist px-4 py-3 text-sm">
+              Have an account? <Link href="/login?next=/checkout" className="font-semibold text-moss underline-offset-4 hover:underline">Sign in</Link> to use your saved addresses.
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name" error={errors.name} className="sm:col-span-2"><input autoComplete="name" value={form.name} onChange={(e) => set("name", e.target.value)} /></Field>
             <Field label="Mobile number" hint="We call to confirm and the rider calls on arrival." error={errors.phone}><input type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
@@ -114,6 +156,28 @@ export function CheckoutForm() {
         </Step>
 
         <Step n={2} title="Delivery">
+          {saved.length > 0 && (
+            <div className="mb-5 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Saved addresses">
+              {saved.map((a) => (
+                <button key={a.id} type="button" role="radio" aria-checked={chosen === a.id} onClick={() => choose(a)} className={`relative rounded-[1.25rem] border p-4 text-left transition ${chosen === a.id ? "border-forest bg-white" : "border-line hover:border-forest/50"}`}>
+                  <span className="block text-sm font-semibold">{a.label}{a.isDefault && <span className="ml-1.5 text-xs font-normal text-muted">· default</span>}</span>
+                  <span className="block truncate text-xs text-ink-soft">{a.address}, {a.area}, {a.city}</span>
+                  <span className="block text-xs text-muted">{a.zone === "DHAKA" ? "Inside Dhaka" : "Outside Dhaka"} · {a.name}</span>
+                  {chosen === a.id && <Check size={16} className="absolute right-4 top-4 text-forest" />}
+                </button>
+              ))}
+              <button type="button" role="radio" aria-checked={chosen === "new"} onClick={() => choose("new")} className={`flex items-center gap-2 rounded-[1.25rem] border border-dashed p-4 text-sm font-semibold transition ${chosen === "new" ? "border-forest bg-white" : "border-line hover:border-forest/50"}`}>
+                <Plus size={16} /> Deliver somewhere else
+              </button>
+            </div>
+          )}
+          {chosen !== "new" && quote?.problem && (
+            <p role="alert" className="mb-3 flex gap-2 rounded-[1.25rem] bg-clay/10 p-4 text-sm text-ink-soft"><MapPin size={17} className="mt-0.5 shrink-0 text-clay" />{quote.problem}</p>
+          )}
+          {chosen !== "new" && Object.values(errors).some(Boolean) && (
+            <p className="mb-3 text-xs text-sale">{Object.values(errors).find(Boolean)} <button type="button" className="underline" onClick={() => setChosen("new")}>Edit the address</button></p>
+          )}
+          <div className={chosen !== "new" ? "hidden" : ""}>
           <fieldset>
             <legend className="mb-3 text-sm font-semibold">Where should we deliver?</legend>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -134,6 +198,12 @@ export function CheckoutForm() {
             <Field label="Area / thana" error={errors.area}><input autoComplete="address-level3" value={form.area} onChange={(e) => set("area", e.target.value)} /></Field>
             <Field label="City / district" error={errors.city}><input autoComplete="address-level2" value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
             <Field label="Note for the delivery team (optional)" error={errors.note} className="sm:col-span-2"><textarea rows={2} value={form.note} onChange={(e) => set("note", e.target.value)} placeholder="e.g. Rooftop delivery, please call from the gate" /></Field>
+            {me && (
+              <label className="flex items-center gap-2.5 text-sm font-semibold sm:col-span-2">
+                <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-forest" /> Save this address to my account
+              </label>
+            )}
+          </div>
           </div>
         </Step>
 
@@ -204,18 +274,10 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-function Field({ label, hint, error, className = "", children }: { label: string; hint?: string; error?: string; className?: string; children: React.ReactNode }) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-xs font-semibold text-ink-soft">{label}</span>
-      <span className={`block rounded-2xl border bg-white transition focus-within:border-forest focus-within:ring-4 focus-within:ring-lime/40 [&>input]:w-full [&>input]:rounded-2xl [&>input]:bg-transparent [&>input]:px-4 [&>input]:py-3 [&>input]:text-sm [&>input]:outline-none [&>textarea]:w-full [&>textarea]:resize-none [&>textarea]:rounded-2xl [&>textarea]:bg-transparent [&>textarea]:px-4 [&>textarea]:py-3 [&>textarea]:text-sm [&>textarea]:outline-none ${error ? "border-sale" : "border-line"}`}>
-        {children}
-      </span>
-      {error ? <span className="mt-1.5 block text-xs text-sale">{error}</span> : hint ? <span className="mt-1.5 block text-xs text-muted">{hint}</span> : null}
-    </label>
-  );
-}
-
 function Row({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
   return <div className={`flex justify-between ${ok ? "text-ok" : ""}`}><dt className={ok ? "" : "text-muted"}>{label}</dt><dd className="tabular-nums">{value}</dd></div>;
+}
+
+function fromSaved(a: SavedAddress) {
+  return { name: a.name, phone: a.phone, address: a.address, area: a.area, city: a.city, zone: a.zone, note: a.note ?? "" };
 }

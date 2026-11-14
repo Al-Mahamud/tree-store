@@ -38,3 +38,7 @@ cd frontend
 npm install
 npm run dev       # http://localhost:3000
 ```
+
+Demo account: mobile `01755555555`, password `shobuj-demo` (Nadia, with a saved address, two past
+orders and three saved plants). Sign-up codes in local runs appear at
+http://localhost:8080/api/v1/test-texts (texts are only logged).

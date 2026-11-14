@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+
+const noop = () => () => {};
 
 /** A panel that slides in from the side, with a dimmed backdrop. Escape and backdrop clicks close it. */
 export function Drawer({
@@ -28,7 +31,11 @@ export function Drawer({
     };
   }, [open, onClose]);
 
-  return (
+  const inBrowser = useSyncExternalStore(noop, () => true, () => false);
+  if (!inBrowser) return null;
+
+  // Rendered into <body>: the sticky header's blur would otherwise make it only as tall as the header.
+  return createPortal(
     <div
       className={`fixed inset-0 z-50 ${open ? "visible" : "pointer-events-none invisible"}`}
       style={{ transition: `visibility 0s linear ${open ? 0 : 300}ms` }}
@@ -48,6 +55,7 @@ export function Drawer({
       >
         {open && children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

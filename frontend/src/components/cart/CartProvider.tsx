@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Cart } from "@/lib/types";
 import { ApiError, request } from "@/lib/client";
 
@@ -16,6 +16,8 @@ type CartContext = {
   removeCoupon: () => Promise<void>;
   refresh: () => Promise<void>;
   clear: () => void;
+  /** Shows a short message at the bottom of the screen. */
+  notify: (message: string) => void;
 };
 
 const Context = createContext<CartContext | null>(null);
@@ -25,6 +27,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const notify = useCallback((message: string) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  }, []);
 
   const run = useCallback(async (call: () => Promise<Cart>) => {
     setBusy(true);
@@ -65,11 +74,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       applyCoupon: (code) => run(() => request<Cart>("POST", "/cart/coupon", { code })),
       removeCoupon: () => run(() => request<Cart>("DELETE", "/cart/coupon")),
       clear: () => setCart(null),
+      notify,
     }),
-    [cart, open, busy, refresh, run],
+    [cart, open, busy, refresh, run, notify],
   );
 
-  return <Context.Provider value={value}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={value}>
+      {children}
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-[70] flex justify-center px-4">
+        {toast && <p className="animate-rise rounded-full bg-forest-deep px-5 py-3 text-sm font-medium text-bone shadow-xl">{toast}</p>}
+      </div>
+    </Context.Provider>
+  );
 }
 
 export function useCart(): CartContext {

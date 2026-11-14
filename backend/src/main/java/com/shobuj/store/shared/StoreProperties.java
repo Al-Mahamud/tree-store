@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Settings under {@code store.*} in application.yml. */
 @ConfigurationProperties("store")
-public record StoreProperties(Path storageRoot, String mediaUrl, Delivery delivery) {
+public record StoreProperties(Path storageRoot, String mediaUrl, Delivery delivery, Sms sms, Codes codes) {
 
     /** Delivery fees in taka; orders at or above {@code freeOver} (after discounts) ship free. */
     public record Delivery(int insideDhaka, int outsideDhaka, int freeOver) {
@@ -17,5 +17,13 @@ public record StoreProperties(Path storageRoot, String mediaUrl, Delivery delive
 
     public enum Zone {
         DHAKA, OUTSIDE
+    }
+
+    /** Text messages: which sender to use. Provider credentials are read by the sender itself. */
+    public record Sms(String driver) {
+    }
+
+    /** One-time codes that prove a phone number. */
+    public record Codes(java.time.Duration validFor, int maxAttempts, java.time.Duration resendAfter, int perPhonePerHour) {
     }
 }

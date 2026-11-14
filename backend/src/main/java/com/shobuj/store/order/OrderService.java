@@ -27,6 +27,18 @@ public class OrderService {
                             int shippingFee, int total, String couponCode, List<Event> events) {
     }
 
+    /** One line in a customer's order history. {@code itemCount} counts plants, {@code lineCount} options. */
+    public record Summary(String number, String status, Instant placedAt, int itemCount, int lineCount, int total,
+                          List<String> images) {
+    }
+
+    public record History(List<Summary> items, int page, int pageSize, long total) {
+    }
+
+    /** What an earlier order held, for "order again". */
+    public record PastItem(Long variantId, String name, String size, String planter, int quantity) {
+    }
+
     private record Row(long id, String token, OrderView view) {
     }
 
@@ -53,6 +65,65 @@ public class OrderService {
                 .filter(r -> r.view().phone().equals(normalised))
                 .orElseThrow(() -> ApiException.notFound("order"));
         return row.view();
+    }
+
+    /** A signed-in customer's own order. */
+    public OrderView forCustomer(long customerId, String number) {
+        return row("o.number = :v", number == null ? "" : number.trim().toUpperCase())
+                .filter(r -> ownedBy(r.id(), customerId))
+                .orElseThrow(() -> ApiException.notFound("order"))
+                .view();
+    }
+
+    public History history(long customerId, int page, int pageSize) {
+        long total = jdbc.sql("select count(*) from orders where customer_id = :c").param("c", customerId)
+                .query(Long.class).single();
+        List<Summary> items = jdbc.sql("""
+                        select o.number, o.status, o.created_at,
+                               (select coalesce(sum(quantity), 0) from order_items where order_id = o.id),
+                               (select count(*) from order_items where order_id = o.id), o.total,
+                               array(select image_url from order_items where order_id = o.id and image_url is not null
+                                      order by id limit 4)
+                          from orders o where o.customer_id = :c
+                         order by o.created_at desc, o.id desc limit :limit offset :offset""")
+                .param("c", customerId).param("limit", pageSize).param("offset", (long) page * pageSize)
+                .query((rs, n) -> new Summary(rs.getString(1), rs.getString(2), rs.getTimestamp(3).toInstant(),
+                        rs.getInt(4), rs.getInt(5), rs.getInt(6), List.of((String[]) rs.getArray(7).getArray())))
+                .list();
+        return new History(items, page, pageSize, total);
+    }
+
+    public List<PastItem> itemsForReorder(long customerId, String number) {
+        OrderView order = forCustomer(customerId, number);
+        return jdbc.sql("""
+                        select i.variant_id, i.product_name, i.size, i.planter, i.quantity
+                          from order_items i join orders o on o.id = i.order_id
+                         where o.number = :n and o.customer_id = :c order by i.id""")
+                .param("n", order.number()).param("c", customerId)
+                .query((rs, n) -> new PastItem((Long) rs.getObject(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getInt(5)))
+                .list();
+    }
+
+    /**
+     * The id of an order the caller may act on: whoever holds its access token (the link on the
+     * thank-you page), or the signed-in customer who placed it.
+     */
+    public long idFor(String number, String token) {
+        Row row = row("o.number = :v", number == null ? "" : number.trim().toUpperCase())
+                .orElseThrow(() -> ApiException.notFound("order"));
+        boolean tokenOk = token != null && MessageDigest.isEqual(row.token().getBytes(StandardCharsets.UTF_8),
+                token.getBytes(StandardCharsets.UTF_8));
+        boolean owner = com.shobuj.store.shared.CurrentCustomer.id().map(c -> ownedBy(row.id(), c)).orElse(false);
+        if (!tokenOk && !owner) {
+            throw ApiException.notFound("order");
+        }
+        return row.id();
+    }
+
+    private boolean ownedBy(long orderId, long customerId) {
+        return jdbc.sql("select count(*) from orders where id = :id and customer_id = :c")
+                .param("id", orderId).param("c", customerId).query(Long.class).single() > 0;
     }
 
     public Optional<OrderView> byId(long id) {

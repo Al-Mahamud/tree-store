@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Heart, MapPin, PawPrint, Ruler, ShieldCheck, Sprout, TrendingUp, Apple, Home as HomeIcon, Truck } from "lucide-react";
+import { MapPin, PawPrint, Ruler, ShieldCheck, Sprout, TrendingUp, Apple, Home as HomeIcon, Truck } from "lucide-react";
 import type { ProductDetail } from "@/lib/types";
 import { careLabels, growthLabels, lightLabels, placementLabels, waterLabels } from "@/lib/care";
 import { site } from "@/config/site";
@@ -11,6 +11,7 @@ import { Price } from "@/components/ui/Price";
 import { CareLevelIcon, LightIcon, WaterIcon } from "@/components/ui/CareIcon";
 import { Gallery } from "./Gallery";
 import { AddToBag } from "./AddToBag";
+import { SaveButton } from "@/components/account/SaveButton";
 
 const LOW_STOCK = 3;
 
@@ -113,9 +114,7 @@ export function ProductView({ product, initialPlanter }: { product: ProductDetai
 
         <div className="mt-8 flex gap-2">
           <AddToBag variantId={option && option.stock > 0 ? option.variantId : null} price={option?.price ?? null} soldOut={!option || option.stock === 0} />
-          <button type="button" aria-label="Save to wishlist" className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-line transition hover:border-forest">
-            <Heart size={20} strokeWidth={1.7} />
-          </button>
+          <SaveButton productId={product.id} name={product.name} size="page" />
         </div>
         <p className="mt-3 min-h-5 text-center text-xs" role="status">
           {option && option.stock > 0 && option.stock <= LOW_STOCK ? <span className="font-semibold text-clay">Only {option.stock} left in this size and planter</span>

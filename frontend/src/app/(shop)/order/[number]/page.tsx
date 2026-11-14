@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { first, type SearchParams } from "@/lib/listing";
 import { site } from "@/config/site";
 import { OrderDetails, StatusTimeline } from "@/components/order/OrderDetails";
+import { AccountNudge } from "@/components/account/AccountNudge";
 
 export const metadata: Metadata = { title: "Thank you", robots: { index: false } };
 
@@ -26,6 +27,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       </div>
       <div className="mt-6 rounded-[2rem] bg-white/60 p-6 md:p-10"><StatusTimeline order={order} /></div>
       <div className="mt-6"><OrderDetails order={order} /></div>
+      <AccountNudge />
       <div className="mt-10 flex flex-wrap justify-center gap-3">
         <Link href="/shop" className="rounded-full bg-forest px-8 py-3.5 text-sm font-semibold text-bone">Keep browsing</Link>
         <Link href={`/track?number=${order.number}`} className="rounded-full border border-forest px-8 py-3.5 text-sm font-semibold">Track this order</Link>

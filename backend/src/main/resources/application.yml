@@ -43,3 +43,18 @@ store:
     inside-dhaka: 100
     outside-dhaka: 200
     free-over: 5000
+  sms:
+    # log: write texts to the log only (local runs). sslwireless: send through SSL Wireless.
+    driver: ${SMS_DRIVER:log}
+    jobs:
+      enabled: true
+    sslwireless:
+      base-url: ${SSLWIRELESS_BASE_URL:https://smsplus.sslwireless.com}
+      api-token: ${SSLWIRELESS_API_TOKEN:}
+      sid: ${SSLWIRELESS_SID:}
+  codes:
+    # One-time codes sent by text: how long they last, tries per code, and resend limits.
+    valid-for: 10m
+    max-attempts: 5
+    resend-after: 60s
+    per-phone-per-hour: 5

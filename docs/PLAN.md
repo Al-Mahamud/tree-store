@@ -125,7 +125,7 @@ Cash-on-delivery orders start at PLACED.
 | 1 | Catalog backend | schema, filters with facets, product pages, home, demo nursery, tests | done |
 | 2 | Storefront | design system, header/footer, home, listings, product page | done |
 | 3 | Bag and checkout | bag, coupons, zones with Dhaka-only rule, COD orders, thank-you, tracking | done |
-| 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | |
+| 4 | Accounts | register/sign in, bag merge, addresses, order history, wishlist | done |
 | 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | |
 | 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | |
 | 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | |
@@ -139,5 +139,28 @@ Cash-on-delivery orders start at PLACED.
   PostgreSQL's text parser may not split Bangla into words.
 - The home page is built at `next build` time and refreshed every 30 s, so the backend must be
   reachable during a production build (handled in phase 8).
-- Header account and wishlist icons and footer `/pages/*` and `/guides` links lead nowhere until
-  phases 4 and 7.
+- Footer `/pages/*` and `/guides` links lead nowhere until phase 7.
+
+### Notes from phase 4 (accounts)
+
+- Built from the grocery shop's (Haat's) account code, adapted to plants. Customers sign in with a
+  mobile number and password (BCrypt; sessions in PostgreSQL; the session id changes at sign-in; 6
+  wrong passwords for a number in 15 minutes pause sign-in).
+- **Sign-up needs a 6-digit code texted to the number** (brought forward from phase 7, so numbers are
+  proven from the start). Codes last 10 minutes, allow 5 tries, one per minute and 5 per hour per
+  number. Because the number is proven, earlier guest orders placed with it join the new account.
+  "Forgot password" uses the same codes and signs out other devices. Texts go through an outbox in
+  the database; `SMS_DRIVER=log` (the default) only logs them, and local runs show them at
+  http://localhost:8080/api/v1/test-texts. The SSL Wireless sender is included but unverified.
+- One bag per customer, shared across devices; at sign-in the guest bag joins it (larger quantity
+  wins, at most 10 per line; a coupon carries over). Signing out leaves the bag with the account.
+- Saved addresses (up to 10, one default) include inside/outside Dhaka, so the delivery fee and the
+  Dhaka-only rule for large trees work from a saved address too. Checkout picks the default and can
+  save a new one.
+- Order history with **Order again**: each plant goes back in the bag in the same size and planter,
+  raised to the earlier quantity within stock; sold-out options are listed and the bag only opens
+  when something is in it.
+- **Wishlist**: a heart on every product card and product page. Signed-out shoppers are sent to
+  sign in. The header shows how many plants are saved.
+- The phone menu and other drawers render into `<body>`; the sticky header's blur made them only as
+  tall as the header (the same fix as in Haat).

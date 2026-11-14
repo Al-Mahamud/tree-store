@@ -1,6 +1,7 @@
 package com.shobuj.store.checkout;
 
 import com.shobuj.store.checkout.CartService.CartView;
+import com.shobuj.store.shared.CurrentCustomer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -34,50 +35,50 @@ class CartController {
     }
 
     private final CartService carts;
+    private final Bags bags;
 
-    CartController(CartService carts) {
+    CartController(CartService carts, Bags bags) {
         this.carts = carts;
+        this.bags = bags;
     }
 
     @GetMapping
     CartView get(HttpServletRequest request) {
-        return carts.view(CartCookie.read(request));
+        return carts.view(bags.current(request));
     }
 
     @PostMapping("/items")
     CartView add(@Valid @RequestBody AddItem body, HttpServletRequest request, HttpServletResponse response) {
-        Optional<UUID> current = CartCookie.read(request);
-        UUID id = carts.add(current, body.variantId(), body.quantity() == 0 ? 1 : body.quantity());
-        if (current.filter(id::equals).isEmpty()) {
-            CartCookie.write(request, response, id);
-        }
+        UUID id = carts.add(bags.current(request), CurrentCustomer.id().orElse(null), body.variantId(),
+                body.quantity() == 0 ? 1 : body.quantity());
+        bags.remember(request, response, id);
         return carts.view(Optional.of(id));
     }
 
     @PatchMapping("/items/{variantId}")
     CartView change(@PathVariable long variantId, @Valid @RequestBody ChangeQuantity body, HttpServletRequest request) {
-        UUID id = CartCookie.read(request).orElseThrow(CartService::emptyCart);
+        UUID id = bags.current(request).orElseThrow(CartService::emptyCart);
         carts.setQuantity(id, variantId, body.quantity());
         return carts.view(Optional.of(id));
     }
 
     @DeleteMapping("/items/{variantId}")
     CartView remove(@PathVariable long variantId, HttpServletRequest request) {
-        Optional<UUID> id = CartCookie.read(request);
+        Optional<UUID> id = bags.current(request);
         id.ifPresent(cart -> carts.remove(cart, variantId));
         return carts.view(id);
     }
 
     @PostMapping("/coupon")
     CartView applyCoupon(@Valid @RequestBody ApplyCoupon body, HttpServletRequest request) {
-        UUID id = CartCookie.read(request).orElseThrow(CartService::emptyCart);
+        UUID id = bags.current(request).orElseThrow(CartService::emptyCart);
         carts.applyCoupon(id, body.code());
         return carts.view(Optional.of(id));
     }
 
     @DeleteMapping("/coupon")
     CartView removeCoupon(HttpServletRequest request) {
-        Optional<UUID> id = CartCookie.read(request);
+        Optional<UUID> id = bags.current(request);
         id.ifPresent(carts::removeCoupon);
         return carts.view(id);
     }

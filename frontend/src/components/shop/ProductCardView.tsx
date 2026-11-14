@@ -5,6 +5,7 @@ import { careLabels, lightLabels } from "@/lib/care";
 import { percentOff } from "@/lib/money";
 import { Price } from "@/components/ui/Price";
 import { LightIcon } from "@/components/ui/CareIcon";
+import { SaveButton } from "@/components/account/SaveButton";
 
 /* eslint-disable @next/next/no-img-element -- plant images are served by the backend as-is. */
 export function ProductCardView({ product, priority = false }: { product: ProductCard; priority?: boolean }) {
@@ -24,6 +25,7 @@ export function ProductCardView({ product, priority = false }: { product: Produc
           {product.hoverImage && (
             <img src={product.hoverImage} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-100" />
           )}
+          <div className="absolute right-3 top-3"><SaveButton productId={product.id} name={product.name} /></div>
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
             {product.soldOut ? (
               <Pill tone="dark">Sold out</Pill>

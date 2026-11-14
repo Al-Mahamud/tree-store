@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronDown, Heart, User } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { AccountButton } from "@/components/account/AccountButton";
 import { api } from "@/lib/api";
 import { site } from "@/config/site";
 import { Logo } from "./Logo";
@@ -82,12 +83,7 @@ export async function Header() {
 
           <div className="flex items-center gap-1">
             <SearchButton />
-            <Link href="/account" aria-label="Account" className="hidden h-10 w-10 place-items-center rounded-full hover:bg-mist sm:grid">
-              <User size={20} strokeWidth={1.7} />
-            </Link>
-            <Link href="/account/wishlist" aria-label="Wishlist" className="hidden h-10 w-10 place-items-center rounded-full hover:bg-mist sm:grid">
-              <Heart size={20} strokeWidth={1.7} />
-            </Link>
+            <AccountButton />
             <BagButton />
           </div>
         </div>

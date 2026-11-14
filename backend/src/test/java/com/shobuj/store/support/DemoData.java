@@ -244,9 +244,21 @@ public class DemoData {
                     "Flowering bonsai\nNeeds full sun outdoors\nFor experienced growers")
     );
 
+    /** A demo customer for local runs. */
+    public static final String DEMO_PHONE = "01755555555";
+    public static final String DEMO_PASSWORD = "shobuj-demo";
+
+    /** Days ago, then slug / size / quantity triples. */
+    static final List<Object[]> DEMO_ORDERS = List.of(
+            new Object[] {12, "amrapali-mango", "SMALL", 2, "snake-plant", "SMALL", 1},
+            new Object[] {40, "money-plant", "MEDIUM", 1, "neem", "SMALL", 1});
+
+    static final List<String> DEMO_WISHLIST = List.of("monstera-deliciosa", "ficus-bonsai", "krishnachura");
+
     @Bean
-    ApplicationRunner demoDataLoader(JdbcClient jdbc, TransactionTemplate tx, StoreProperties properties) {
-        return new Loader(jdbc, tx, properties.storageRoot().resolve("demo"));
+    ApplicationRunner demoDataLoader(JdbcClient jdbc, TransactionTemplate tx, StoreProperties properties,
+                                     org.springframework.security.crypto.password.PasswordEncoder passwords) {
+        return new Loader(jdbc, tx, properties.storageRoot().resolve("demo"), passwords);
     }
 
     static final class Loader implements ApplicationRunner {
@@ -257,7 +269,11 @@ public class DemoData {
         private final Map<String, Long> categories = new HashMap<>();
         private final Map<String, Long> collections = new HashMap<>();
 
-        Loader(JdbcClient jdbc, TransactionTemplate tx, Path folder) {
+        private final org.springframework.security.crypto.password.PasswordEncoder passwords;
+
+        Loader(JdbcClient jdbc, TransactionTemplate tx, Path folder,
+               org.springframework.security.crypto.password.PasswordEncoder passwords) {
+            this.passwords = passwords;
             this.jdbc = jdbc;
             this.tx = tx;
             this.folder = folder;
@@ -318,6 +334,60 @@ public class DemoData {
                          where p.category_id in (select id from categories where id = c.id or parent_id = c.id)
                          order by p.featured desc, p.sold_count desc, pl.position, pi.position limit 1)
                     """).update();
+            demoCustomer(now);
+        }
+
+        /** A customer with a saved address, two delivered orders and saved plants. */
+        private void demoCustomer(Instant now) {
+            long customer = jdbc.sql("""
+                            insert into customers (name, phone, password_hash, phone_verified_at)
+                            values ('Nadia Rahman', :phone, :hash, now()) returning id""")
+                    .param("phone", DEMO_PHONE).param("hash", passwords.encode(DEMO_PASSWORD)).query(Long.class).single();
+            jdbc.sql("""
+                            insert into addresses (customer_id, label, name, phone, address, area, city, zone, is_default)
+                            values (:c, 'Home', 'Nadia Rahman', :phone, 'House 14, Road 9A, Flat 5C', 'Dhanmondi', 'Dhaka', 'DHAKA', true)""")
+                    .param("c", customer).param("phone", DEMO_PHONE).update();
+            for (Object[] o : DEMO_ORDERS) {
+                Instant placed = now.minus(Duration.ofDays((Integer) o[0]));
+                String number = "SB" + jdbc.sql("select nextval('order_number_seq')").query(Long.class).single();
+                long order = jdbc.sql("""
+                                insert into orders (number, access_token, customer_id, name, phone, address, area, city, zone,
+                                                    subtotal, shipping_fee, total, payment_method, payment_status, status,
+                                                    created_at, updated_at)
+                                values (:n, md5(random()::text), :c, 'Nadia Rahman', :phone, 'House 14, Road 9A, Flat 5C',
+                                        'Dhanmondi', 'Dhaka', 'DHAKA', 0, 0, 0, 'COD', 'PAID', 'DELIVERED', :at, :at)
+                                returning id""")
+                        .param("n", number).param("c", customer).param("phone", DEMO_PHONE).param("at", java.sql.Timestamp.from(placed))
+                        .query(Long.class).single();
+                for (int i = 1; i < o.length; i += 3) {
+                    jdbc.sql("""
+                                    insert into order_items (order_id, variant_id, product_id, product_slug, product_name, planter,
+                                                             size, height, sku, image_url, unit_price, quantity)
+                                    select :o, v.id, p.id, p.slug, p.name, pl.name, :sizeLabel, v.height, v.sku,
+                                           (select url from product_images where product_id = p.id order by position limit 1),
+                                           v.price, :q
+                                      from variants v join products p on p.id = v.product_id join planters pl on pl.id = v.planter_id
+                                     where p.slug = :slug and v.size = :size
+                                     order by v.stock > 0 desc, pl.position limit 1""")
+                            .param("o", order).param("slug", o[i]).param("size", o[i + 1])
+                            .param("sizeLabel", com.shobuj.store.catalog.Care.Size.valueOf((String) o[i + 1]).label)
+                            .param("q", o[i + 2]).update();
+                }
+                jdbc.sql("""
+                                update orders o set subtotal = s.sum, total = s.sum + case when s.sum >= 5000 then 0 else 100 end,
+                                                    shipping_fee = case when s.sum >= 5000 then 0 else 100 end
+                                  from (select sum(unit_price * quantity) as sum from order_items where order_id = :o) s
+                                 where o.id = :o""")
+                        .param("o", order).update();
+                jdbc.sql("insert into order_events (order_id, status, actor, created_at) values (:o, 'PLACED', 'customer', :at)")
+                        .param("o", order).param("at", java.sql.Timestamp.from(placed)).update();
+                jdbc.sql("insert into order_events (order_id, status, actor, created_at) values (:o, 'DELIVERED', 'shop', :at)")
+                        .param("o", order).param("at", java.sql.Timestamp.from(placed.plus(Duration.ofDays(2)))).update();
+            }
+            for (String slug : DEMO_WISHLIST) {
+                jdbc.sql("insert into wishlist_items (customer_id, product_id) select :c, id from products where slug = :s")
+                        .param("c", customer).param("s", slug).update();
+            }
         }
 
         private void coupon(String code, String description, String kind, int value, Integer max, int min, Instant ends) {
