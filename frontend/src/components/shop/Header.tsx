@@ -11,6 +11,8 @@ import { BagButton } from "./BagButton";
 /* eslint-disable @next/next/no-img-element */
 export async function Header() {
   const [categories, collections, fees] = await Promise.all([api.categories(), api.collections(), api.delivery()]);
+  // A gifts collection gets its own menu item when the shop has one.
+  const gifts = collections.find((c) => c.slug.includes("gift"));
   return (
     <>
       <div className="bg-forest-deep text-bone">
@@ -68,11 +70,13 @@ export async function Header() {
                   )}
                 </li>
               ))}
-              <li>
-                <Link href="/collections/gifts-that-grow" className="inline-flex rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-forest hover:text-bone">
-                  Gifts
-                </Link>
-              </li>
+              {gifts && (
+                <li>
+                  <Link href={`/collections/${gifts.slug}`} className="inline-flex rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-forest hover:text-bone">
+                    Gifts
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link href="/shop?sale=true" className="inline-flex rounded-full px-4 py-2 text-sm font-semibold text-sale transition hover:bg-sale hover:text-white">
                   Offers

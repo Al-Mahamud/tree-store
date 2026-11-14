@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Leaf } from "lucide-react";
 import { api } from "@/lib/api";
-import { productQuery, type SearchParams } from "@/lib/listing";
+import { productQuery, type SearchParams, FILTER_KEYS } from "@/lib/listing";
 import { ActiveFilters, FilterPanel, MobileFilters, SortSelect } from "./Filters";
 import { LoadMoreGrid } from "./LoadMoreGrid";
 
@@ -30,6 +30,7 @@ export async function Listing({
 }) {
   const query = productQuery(scope, searchParams);
   const page = await api.products(query);
+  const filtered = FILTER_KEYS.some((k) => k !== "sort" && query.has(k));
   return (
     <>
       <section className="px-2 pt-2 md:px-3 md:pt-3">
@@ -84,8 +85,8 @@ export async function Listing({
             {page.items.length === 0 ? (
               <div className="grid place-items-center rounded-[2rem] border border-dashed border-line px-6 py-24 text-center">
                 <Leaf size={28} strokeWidth={1.5} className="text-moss" />
-                <p className="mt-4 font-display text-3xl">No plants match all of that</p>
-                <p className="mt-2 text-sm text-muted">Try removing a filter — or ask our plant doctor on WhatsApp for a suggestion.</p>
+                <p className="mt-4 font-display text-3xl">{filtered ? "No plants match all of that" : "New plants are on their way"}</p>
+                <p className="mt-2 text-sm text-muted">{filtered ? "Try removing a filter — or ask our plant doctor on WhatsApp for a suggestion." : "Nothing here yet. Have a look at the rest of the nursery, or ask our plant doctor on WhatsApp."}</p>
               </div>
             ) : (
               <LoadMoreGrid key={query.toString()} initial={page} query={query.toString()} />

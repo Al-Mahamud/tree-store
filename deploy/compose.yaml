@@ -1,0 +1,103 @@
+# One server running the whole shop: PostgreSQL, the API, the website and Caddy for HTTPS.
+# Only Caddy is reachable from outside. See docs/DEPLOY.md.
+#
+#   cp deploy/.env.example deploy/.env   # then fill it in
+#   docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
+
+name: shobuj
+
+# Container logs rotate at 5 × 20 MB per service, so they can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "5"
+
+services:
+  db:
+    logging: *logging
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shobuj
+      POSTGRES_USER: shobuj
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shobuj -d shobuj"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    logging: *logging
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/shobuj
+      DB_USERNAME: shobuj
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      WEB_URL: https://${DOMAIN:?set DOMAIN in deploy/.env}
+      STAGING: ${STAGING:-false}
+      # Texts: "sslwireless" for real SMS; "log" only on a staging server.
+      SMS_DRIVER: ${SMS_DRIVER:?set SMS_DRIVER in deploy/.env}
+      SSLWIRELESS_API_TOKEN: ${SSLWIRELESS_API_TOKEN:-}
+      SSLWIRELESS_SID: ${SSLWIRELESS_SID:-}
+      # Online payment stays off until the store id and password are set.
+      SSLCOMMERZ_STORE_ID: ${SSLCOMMERZ_STORE_ID:-}
+      SSLCOMMERZ_STORE_PASSWORD: ${SSLCOMMERZ_STORE_PASSWORD:-}
+      SSLCOMMERZ_BASE_URL: ${SSLCOMMERZ_BASE_URL:-https://sandbox.sslcommerz.com}
+      # The first staff account, made on the first start only; remove both afterwards.
+      ADMIN_NAME: ${ADMIN_NAME:-Owner}
+      ADMIN_PHONE: ${ADMIN_PHONE:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - storage:/var/lib/shobuj/storage
+    healthcheck:
+      # The image has no curl; bash can open a TCP connection itself.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 5
+
+  frontend:
+    logging: *logging
+    build:
+      context: ../frontend
+      args:
+        BACKEND_URL: http://backend:8080
+        NEXT_PUBLIC_SITE_URL: https://${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:8080
+
+  caddy:
+    logging: *logging
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  storage:
+  caddy-data:
+  caddy-config:

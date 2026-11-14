@@ -1,0 +1,34 @@
+# The only public entry point: HTTPS with automatic certificates (Let's Encrypt) for $DOMAIN, and
+# plain HTTP redirected to it. The API and pictures go straight to the backend; every page
+# goes to the website. Caddy sets X-Forwarded-For to the visitor's address, ignoring any they send.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	request_body {
+		# Plant pictures and review photos are at most 5 MB; the API accepts requests up to 9 MB.
+		max_size 9MB
+	}
+
+	@api path /api/* /media/*
+	handle @api {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

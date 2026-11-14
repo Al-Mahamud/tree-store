@@ -311,6 +311,7 @@ public class DemoData {
     static final List<String> DEMO_WISHLIST = List.of("monstera-deliciosa", "ficus-bonsai", "krishnachura");
 
     @Bean
+    @org.springframework.core.annotation.Order(1)
     ApplicationRunner demoDataLoader(JdbcClient jdbc, TransactionTemplate tx, StoreProperties properties,
                                      org.springframework.security.crypto.password.PasswordEncoder passwords) {
         return new Loader(jdbc, tx, properties.storageRoot().resolve("demo"), passwords);
@@ -342,16 +343,10 @@ public class DemoData {
         }
 
         private void load() {
-            category(null, "Trees", "trees", "Fruit, flowering, shade and timber trees for gardens, rooftops and land.", 0);
-            category("trees", "Fruit trees", "fruit-trees", "Grafted trees that fruit years sooner.", 0);
-            category("trees", "Flowering trees", "flowering-trees", "Colour and scent for every season.", 1);
-            category("trees", "Shade & timber", "shade-timber", "Long-lived trees for land and boundaries.", 2);
-            category("trees", "Palms", "palms", "Palms for avenues, gardens and living rooms.", 3);
-            category(null, "Indoor plants", "indoor", "Greenery that copes with flats, offices and air conditioning.", 1);
-            category("indoor", "Easy care", "indoor-easy", "Nearly unkillable plants for busy people.", 0);
-            category("indoor", "Statement plants", "indoor-statement", "Big leaves that fill a corner.", 1);
-            category("indoor", "Trailing & hanging", "indoor-trailing", "For shelves, hooks and moss poles.", 2);
-            category(null, "Bonsai", "bonsai", "Hand-shaped miniature trees, years in the making.", 2);
+            // The categories come from the starter data (StarterCatalog runs first).
+            jdbc.sql("select id, slug from categories").query(rs -> {
+                categories.put(rs.getString(2), rs.getLong(1));
+            });
 
             Plant mango = ITEMS.get(0).look();
             collection("Monsoon Planting", "monsoon-planting", "Plant now, harvest for decades",
@@ -588,17 +583,6 @@ public class DemoData {
                     .param("code", code).param("description", description).param("kind", kind).param("value", value)
                     .param("max", max).param("min", min).param("ends", ends == null ? null : Timestamp.from(ends))
                     .update();
-        }
-
-        private void category(String parent, String name, String slug, String description, int position) {
-            long id = jdbc.sql("""
-                            insert into categories (parent_id, name, slug, description, position)
-                            values (:parent, :name, :slug, :description, :position) returning id""")
-                    .param("parent", parent == null ? null : categories.get(parent))
-                    .param("name", name).param("slug", slug).param("description", description)
-                    .param("position", position)
-                    .query(Long.class).single();
-            categories.put(slug, id);
         }
 
         private void collection(String name, String slug, String tagline, String description, int position, String svg) {

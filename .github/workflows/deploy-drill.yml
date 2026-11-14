@@ -1,0 +1,94 @@
+# The deployment, tested for real on a throwaway server: the images are built, the whole stack
+# starts behind Caddy with HTTPS, the first staff account can sign in, and a backup made with
+# scripts/backup.sh brings everything back after the data is wiped (scripts/restore.sh).
+name: Deploy drill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1" # Mondays, 09:00 in Dhaka
+  push:
+    branches: [main]
+    paths:
+      - deploy/**
+      - scripts/**
+      - backend/Dockerfile
+      - frontend/Dockerfile
+      - frontend/next.config.ts
+      - backend/src/main/resources/**
+      - .github/workflows/deploy-drill.yml
+
+permissions:
+  contents: read
+
+env:
+  COMPOSE: docker compose -f deploy/compose.yaml --env-file deploy/.env
+  PSQL: psql -U shobuj -d shobuj -tA
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Settings for a throwaway server
+        run: |
+          printf '%s\n' DOMAIN=localhost POSTGRES_PASSWORD=drill-only-password SMS_DRIVER=log STAGING=true \
+            ADMIN_NAME=Drill ADMIN_PHONE=01999000111 ADMIN_PASSWORD=drill-admin-password > deploy/.env
+
+      - name: Build and start the whole stack
+        run: $COMPOSE up -d --build --wait --wait-timeout 600
+
+      - name: The shop answers over HTTPS through Caddy
+        run: |
+          # A brand-new shop has the starter categories, and its pages render without plants.
+          curl -kfsS https://localhost/api/v1/categories | grep -q '"slug":"fruit-trees"'
+          curl -kfsS https://localhost/api/v1/delivery | grep -q '"insideDhaka":100'
+          curl -kfsS https://localhost/ | grep -q 'Plant a tree'
+          curl -kfsS https://localhost/c/fruit-trees -o /dev/null
+          curl -kfsS https://localhost/guides/planting-a-fruit-tree | grep -q 'graft line'
+          curl -kfsS https://localhost/pages/delivery | grep -q 'Inside Dhaka'
+          curl -kfsS https://localhost/robots.txt | grep -q 'Disallow: /admin'
+          curl -kfsS https://localhost/sitemap.xml | grep -q 'https://localhost/guides/bonsai-basics'
+          curl -kfsS -D - https://localhost/ -o /dev/null | grep -qi '^strict-transport-security'
+          # The private parts aren't reachable from outside.
+          test "$(curl -ks -o /dev/null -w '%{http_code}' https://localhost/actuator/health)" != 200
+
+      - name: The first staff account signs in
+        run: |
+          curl -kfsS -c jar https://localhost/api/v1/csrf -o /dev/null
+          token="$(grep XSRF-TOKEN jar | awk '{print $7}')"
+          curl -kfsS -b jar -c jar -H "X-XSRF-TOKEN: $token" -H 'Content-Type: application/json' \
+            -d '{"phone":"01999000111","password":"drill-admin-password"}' https://localhost/api/v1/staff/login | grep -q '"Drill"'
+          curl -kfsS -b jar https://localhost/api/v1/admin/dashboard | grep -q '"ordersToday"'
+          # Sign-in cookies are Secure behind Caddy.
+          grep -q 'SESSION' jar && grep 'SESSION' jar | awk '{print $4}' | grep -q TRUE
+
+      - name: Something to lose
+        run: |
+          $COMPOSE exec -T db $PSQL -c "insert into coupons (code, kind, value) values ('DRILL50', 'FIXED', 50)"
+          $COMPOSE exec -T backend bash -c 'mkdir -p /var/lib/shobuj/storage/products && echo kept > /var/lib/shobuj/storage/products/proof.txt'
+
+      - name: Back up
+        run: scripts/backup.sh /tmp/backups
+
+      - name: Lose everything
+        run: |
+          $COMPOSE down --volumes
+          $COMPOSE up -d --wait --wait-timeout 300
+          test "$($COMPOSE exec -T db $PSQL -c "select count(*) from coupons where code = 'DRILL50'")" = 0
+
+      - name: Restore
+        run: CONFIRM=yes scripts/restore.sh /tmp/backups/db-*.dump /tmp/backups/storage-*.tar.gz
+
+      - name: Everything is back
+        run: |
+          test "$($COMPOSE exec -T db $PSQL -c "select value from coupons where code = 'DRILL50'")" = 50
+          test "$($COMPOSE exec -T backend cat /var/lib/shobuj/storage/products/proof.txt)" = kept
+          curl -kfsS https://localhost/ -o /dev/null
+          curl -kfsS https://localhost/api/v1/categories | grep -q '"slug":"fruit-trees"'
+
+      - name: Logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail=200

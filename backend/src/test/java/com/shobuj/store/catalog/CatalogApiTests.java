@@ -20,6 +20,9 @@ class CatalogApiTests {
     @LocalServerPort
     int port;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
     ApiClient api;
 
     @BeforeEach
@@ -155,5 +158,21 @@ class CatalogApiTests {
         List<String> names = new ArrayList<>();
         nodes.forEach(n -> names.add(n.get("name").asString()));
         return names;
+    }
+
+    @Test
+    void healthChecksAnswerWithoutSigningIn() {
+        ApiClient anyone = new ApiClient(port);
+        for (String path : java.util.List.of("/actuator/health", "/actuator/health/readiness", "/actuator/health/liveness")) {
+            assertThat(anyone.get(path).status()).as(path).isEqualTo(200);
+        }
+    }
+
+    @Test
+    void aNewShopStartsWithTheStarterCategories() {
+        java.util.List<String> slugs = jdbc.sql("select slug from categories").query(String.class).list();
+        for (String[] c : StarterCatalog.CATEGORIES) {
+            assertThat(slugs).contains(c[2]);
+        }
     }
 }

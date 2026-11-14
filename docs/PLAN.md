@@ -129,7 +129,7 @@ Cash-on-delivery orders start at PLACED.
 | 5 | Online payment | SSLCommerz with a fake local gateway, payment expiry | done |
 | 6 | Admin | dashboard, plant editor with images, stock grid, orders, coupons, delivery settings | done |
 | 7 | Content and care | reviews, order SMS/email, care-reminder SMS, planting guides, SEO, sitemap | done (texts only, no email) |
-| 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | |
+| 8 | Launch readiness | Docker, Caddy, backups, CI, real payment credentials | done (credentials are the owner's: docs/DEPLOY.md) |
 
 ### Notes from building
 
@@ -245,3 +245,30 @@ Cash-on-delivery orders start at PLACED.
   offers, ratings and reviews, BreadcrumbList, Article for guides).
 - The first page of reviews is cached by the website for 60 seconds, so a new review can take up to
   a minute to appear for other visitors (the writer sees it at once).
+
+### Notes from phase 8 (launch readiness)
+
+- Built from Haat's phase 8. `docs/DEPLOY.md` is the launch guide. One server with Docker:
+  PostgreSQL, the API and the website as images (`backend/Dockerfile`, `frontend/Dockerfile`,
+  unprivileged users), and Caddy in front for HTTPS and security headers (`deploy/compose.yaml`,
+  `deploy/Caddyfile`). Settings and secrets go in `deploy/.env` (from `deploy/.env.example`).
+- The `prod` profile logs JSON, trusts forwarded headers only from the private network, and
+  `ProductionChecks` refuses to start with an `http://` address, an empty database password,
+  insecure cookies, texts that only go to the log (unless `STAGING=true`) or an `http://` payment
+  callback. Health checks (`/actuator/health/readiness`, `/liveness`) are open for the containers;
+  Caddy doesn't expose `/actuator`.
+- A new shop starts with the nursery's usual categories (`StarterCatalog`); demo data now builds on
+  them. The home page shows its category, best-seller, fruit-tree and collection sections only when
+  they have something in them, and the banner falls back to the whole shop when there is no
+  collection. "Gifts" in the menu appears only when a gifts collection exists. An empty listing
+  without filters says new plants are on their way.
+- Shop pages now render when visited (`connection()` in the shop layout) rather than at build time,
+  so the website builds without the API (CI, Docker); catalog reads stay cached as before. The
+  sitemap is also built on request.
+- `scripts/backup.sh` (database and uploaded pictures, checked, 14 days, optional rclone copy) and
+  `scripts/restore.sh`. GitHub Actions: CI on every push (backend tests; website type check, lint,
+  build and audit), a weekly **Deploy drill** that builds the stack, checks the shop over HTTPS,
+  signs in as staff, backs up, wipes and restores, and Dependabot (no major Java or Node jumps).
+- There is no Docker on the development machine, so the images and compose file are first proven by
+  the Deploy drill on GitHub. The production website build was run and checked locally (standalone
+  server against the API, with an empty shop too).

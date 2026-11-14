@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Header } from "@/components/shop/Header";
 import { Footer } from "@/components/shop/Footer";
 import { AccountProvider } from "@/components/account/AccountProvider";
@@ -5,7 +6,10 @@ import { WishlistProvider } from "@/components/account/WishlistProvider";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+  // Pages render when visited, not at build time: the build (CI, Docker) has no shop API to ask.
+  // Catalog reads are still cached for their revalidate time (lib/api.ts).
+  await connection();
   return (
     <AccountProvider>
       <WishlistProvider>

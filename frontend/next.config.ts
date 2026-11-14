@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
 
 const nextConfig: NextConfig = {
+  // A self-contained server for the Docker image (deploy/).
+  output: "standalone",
   // The browser only talks to Next.js; API calls and images are forwarded to the backend,
   // so cookies stay first-party and there is no CORS.
   async rewrites() {

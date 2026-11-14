@@ -1,0 +1,23 @@
+# Live and staging servers (deploy/compose.yaml sets SPRING_PROFILES_ACTIVE=prod).
+# Addresses and secrets come from the environment; see deploy/.env.example and docs/DEPLOY.md.
+
+server:
+  # Requests arrive through Caddy. Tomcat takes the visitor's address and https from
+  # X-Forwarded-For / X-Forwarded-Proto, but only from proxies on a private network
+  # (server.tomcat.remoteip.internal-proxies), so sign-in limits see real visitors and nobody
+  # outside can pretend to be someone else.
+  forward-headers-strategy: native
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+logging:
+  # One JSON object per line, ready for a log collector.
+  structured:
+    format:
+      console: ecs
+
+store:
+  storage-root: ${STORAGE_ROOT:/var/lib/shobuj/storage}

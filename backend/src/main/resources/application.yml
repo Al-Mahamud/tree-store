@@ -35,12 +35,19 @@ management:
     web:
       exposure:
         include: health
+  endpoint:
+    health:
+      # /actuator/health/readiness and /liveness, for the container health check (deploy/compose.yaml).
+      probes:
+        enabled: true
 
 store:
   storage-root: ${STORAGE_ROOT:storage}
   media-url: /media
   # Where shoppers' browsers open the shop; payment pages send them back here.
   web-url: ${WEB_URL:http://localhost:3000}
+  # A test server: allows the log SMS sender in production mode (see ProductionChecks).
+  staging: ${STAGING:false}
   admin:
     # The first staff account, made at start-up when there is none. Change the password after signing in.
     first-staff-name: ${ADMIN_NAME:Owner}

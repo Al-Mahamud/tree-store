@@ -16,16 +16,18 @@ export default async function HomePage() {
   const [home, fees] = await Promise.all([api.home(), api.delivery()]);
   const [monsoon, ...others] = home.collections;
   const star = home.fruitTrees[0];
+  // A new shop has categories but no plants yet: show only what has something in it.
+  const categories = home.categories.filter((c) => c.productCount > 0 || c.children.some((child) => child.productCount > 0));
 
   return (
     <>
-      {monsoon && <Hero collection={monsoon} star={star} />}
+      <Hero collection={monsoon} star={star} />
       <Finder />
 
-      <section className="container-page pt-20 md:pt-28">
+      {categories.length > 0 && <section className="container-page pt-20 md:pt-28">
         <SectionHeading kicker="Browse the nursery" title={<>Something for every <em>space</em></>} />
         <div className="grid gap-4 md:grid-cols-3">
-          {home.categories.map((category, i) => (
+          {categories.map((category, i) => (
             <Link key={category.id} href={`/c/${category.slug}`} className="group relative block animate-rise overflow-hidden rounded-[2rem] bg-mist" style={{ animationDelay: `${i * 90}ms` }}>
               <div className="aspect-[4/5] md:aspect-[3/4]">
                 {category.image && <img src={category.image} alt="" className="h-full w-full object-cover transition duration-[1.2s] ease-out-soft group-hover:scale-105" />}
@@ -44,21 +46,25 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
-      </section>
+      </section>}
 
-      <section className="container-page pt-20 md:pt-28">
-        <SectionHeading kicker="Most loved" title="Best sellers" href="/shop?sort=popular" />
-        <ProductRail products={home.bestSellers} />
-      </section>
+      {home.bestSellers.length > 0 && (
+        <section className="container-page pt-20 md:pt-28">
+          <SectionHeading kicker="Most loved" title="Best sellers" href="/shop?sort=popular" />
+          <ProductRail products={home.bestSellers} />
+        </section>
+      )}
 
-      <FruitFeature trees={home.fruitTrees} />
+      {home.fruitTrees.length > 0 && <FruitFeature trees={home.fruitTrees} />}
 
-      <section className="container-page pt-20 md:pt-28">
-        <SectionHeading kicker="Collections" title={<>Picked for the <em>season</em></>} />
-        <div className="grid gap-4 md:grid-cols-2">
-          {others.map((c) => <CollectionCard key={c.id} collection={c} />)}
-        </div>
-      </section>
+      {others.length > 0 && (
+        <section className="container-page pt-20 md:pt-28">
+          <SectionHeading kicker="Collections" title={<>Picked for the <em>season</em></>} />
+          <div className="grid gap-4 md:grid-cols-2">
+            {others.map((c) => <CollectionCard key={c.id} collection={c} />)}
+          </div>
+        </section>
+      )}
 
       <section className="container-page pt-20 md:pt-28">
         <SectionHeading kicker="From the potting shed" title={<>Plant it <em>right</em></>} href="/guides" linkLabel="All guides" />
@@ -94,13 +100,14 @@ export default async function HomePage() {
   );
 }
 
-function Hero({ collection, star }: { collection: Collection; star?: ProductCard }) {
+/** The opening banner: the first collection when there is one, otherwise the whole shop. */
+function Hero({ collection, star }: { collection?: Collection; star?: ProductCard }) {
   return (
     <section className="px-2 pt-2 md:px-3 md:pt-3">
       <div className="relative grid overflow-hidden rounded-[2rem] bg-sage md:rounded-[2.5rem] lg:min-h-[min(calc(100dvh-8rem),48rem)] lg:grid-cols-2">
         <div className="relative z-10 flex flex-col justify-center px-6 py-12 md:px-12 lg:py-20 xl:px-20">
           <p className="inline-flex w-fit animate-rise items-center gap-2 rounded-full bg-bone/70 px-3 py-1.5 text-xs font-semibold">
-            <span className="h-2 w-2 rounded-full bg-moss" /> {collection.name} is here
+            <span className="h-2 w-2 rounded-full bg-moss" /> {collection ? `${collection.name} is here` : "Grown in our nursery"}
           </p>
           <h1 className="mt-6 animate-rise font-display text-[3.25rem] leading-[0.95] tracking-tight [animation-delay:80ms] sm:text-7xl xl:text-[5.5rem]">
             Plant a tree.<br /><em className="text-forest">Grow a legacy.</em>
@@ -110,8 +117,8 @@ function Hero({ collection, star }: { collection: Collection; star?: ProductCard
             and delivered potted, ready to grow.
           </p>
           <div className="mt-9 flex animate-rise flex-wrap gap-3 [animation-delay:240ms]">
-            <Link href={`/collections/${collection.slug}`} className="group inline-flex items-center gap-2 rounded-full bg-forest px-7 py-4 text-sm font-semibold text-bone transition hover:bg-forest-deep">
-              Shop {collection.name.toLowerCase()} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+            <Link href={collection ? `/collections/${collection.slug}` : "/shop"} className="group inline-flex items-center gap-2 rounded-full bg-forest px-7 py-4 text-sm font-semibold text-bone transition hover:bg-forest-deep">
+              {collection ? `Shop ${collection.name.toLowerCase()}` : "Shop all plants"} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </Link>
             <Link href="/c/indoor" className="inline-flex items-center rounded-full bg-bone/70 px-7 py-4 text-sm font-semibold transition hover:bg-bone">
               Indoor plants
@@ -124,7 +131,17 @@ function Hero({ collection, star }: { collection: Collection; star?: ProductCard
           </ul>
         </div>
         <div className="relative min-h-[22rem] lg:min-h-0">
-          {collection.image && <img src={collection.image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+          {collection?.image ? (
+            <img src={collection.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div aria-hidden className="absolute inset-0 grid place-items-center bg-forest">
+              <svg viewBox="0 0 32 32" className="h-1/2 max-h-80 w-1/2 max-w-80 opacity-90">
+                <path d="M16 27V13" stroke="#d6ee7a" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M16 15c0-4 3-7 7-7 0 4-3 7-7 7Z" fill="#d6ee7a" />
+                <path d="M16 19c0-3-2.5-5.5-6-5.5 0 3 2.5 5.5 6 5.5Z" fill="#d6ee7a" opacity=".75" />
+              </svg>
+            </div>
+          )}
           {star && (
             <Link href={`/p/${star.slug}`} className="absolute bottom-4 left-4 right-4 flex animate-rise items-center gap-4 rounded-[1.5rem] bg-bone/90 p-3 pr-5 shadow-xl backdrop-blur [animation-delay:400ms] sm:right-auto sm:max-w-sm md:bottom-8 md:left-8">
               {star.image && <img src={star.image} alt="" className="h-20 w-16 shrink-0 rounded-2xl object-cover" />}

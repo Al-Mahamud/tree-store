@@ -59,3 +59,5 @@ Search engines: set `NEXT_PUBLIC_SITE_URL` to the shop's public address (used in
 the sitemap at `/sitemap.xml`, `/robots.txt` and shared-link pictures). Planting guides live in
 `frontend/src/config/guides.ts` and the footer's information pages in `frontend/src/config/pages.ts`;
 both are drafts to check before launch.
+
+Putting the shop online (Docker, HTTPS, backups, CI): see `docs/DEPLOY.md`.

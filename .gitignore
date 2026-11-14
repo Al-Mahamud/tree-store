@@ -22,3 +22,7 @@ backend/storage/
 # Next.js generated files
 next-env.d.ts
 *.tsbuildinfo
+
+# Deployment secrets and backups
+deploy/.env
+backups/
